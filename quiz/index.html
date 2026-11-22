@@ -51,8 +51,8 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .card{background:var(--glass);border:1px solid var(--line);border-radius:var(--r);padding:20px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:var(--shadow)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 26px;border-radius:16px;font-weight:800;font-size:1.05rem;transition:transform .15s,box-shadow .2s,filter .2s}
 .btn:active{transform:scale(.97)}
-.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#2a1400;box-shadow:0 10px 28px rgba(255,160,30,.38)}
-.btn-gold:hover{filter:brightness(1.06);box-shadow:0 14px 34px rgba(255,160,30,.5)}
+.btn-gold{background:#fff;color:#08275a;box-shadow:0 10px 28px rgba(255,255,255,.22)}
+.btn-gold:hover{background:#eaf3ff;box-shadow:0 14px 34px rgba(127,211,255,.35)}
 .btn-ghost{background:var(--glass);border:1px solid var(--line)}
 .btn-ghost:hover{background:var(--glass2)}
 .btn-lg{font-size:1.3rem;padding:18px 38px;border-radius:20px}
@@ -66,7 +66,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .lockbox h2{font-size:2.3rem;margin-bottom:6px;background:linear-gradient(90deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
 .lockbox p{color:var(--muted);margin-bottom:22px}
 .field{width:100%;padding:15px 18px;border-radius:15px;border:1.5px solid var(--line);background:rgba(0,0,0,.25);color:var(--text);font:inherit;font-size:1.05rem;outline:none;transition:.2s}
-.field:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(255,201,74,.15)}
+.field:focus{border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.15)}
 #code{text-align:center;letter-spacing:4px;font-weight:800;font-size:1.3rem;direction:ltr}
 .lockbox .btn{width:100%;margin-top:14px}
 #unlockBtn{background:#fff;color:#08275a;box-shadow:0 10px 28px rgba(255,255,255,.22)}
@@ -86,7 +86,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .mode .ico{font-size:34px;width:60px;height:60px;border-radius:18px;display:grid;place-items:center;background:rgba(255,255,255,.08);flex:none}
 .mode b{font-size:1.15rem;display:block}
 .mode span{color:var(--muted);font-size:.9rem}
-.mode.on{border-color:var(--gold);background:linear-gradient(135deg,rgba(255,201,74,.16),rgba(255,159,28,.05));box-shadow:0 0 0 4px rgba(255,201,74,.1)}
+.mode.on{border-color:#fff;background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,255,255,.05));box-shadow:0 0 0 4px rgba(255,255,255,.1)}
 .teams{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:stretch;margin-bottom:18px}
 .vs{align-self:center;font-family:'Lalezar';font-size:2.4rem;color:var(--gold);text-shadow:0 0 22px rgba(255,201,74,.6)}
 .team{border-top:5px solid var(--tc)}
@@ -111,12 +111,12 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:9px 14px;border-radius:999px;background:rgba(255,255,255,.06);border:1.5px solid var(--line);font-weight:700;font-size:.93rem;transition:.15s;display:inline-flex;gap:6px;align-items:center}
 .chip i{font-style:normal;color:var(--muted);font-size:.78rem;font-weight:500}
-.chip.on{background:color-mix(in srgb,var(--cc,#ffc94a) 22%,transparent);border-color:var(--cc,var(--gold))}
+.chip.on{background:color-mix(in srgb,var(--cc,#ffffff) 22%,transparent);border-color:var(--cc,#fff)}
 .chip:hover{transform:translateY(-1px)}
 .opt-row{margin-bottom:14px}
 .seg{display:flex;background:rgba(0,0,0,.22);border-radius:14px;padding:4px;gap:4px;flex-wrap:wrap}
 .seg button{flex:1;padding:9px 8px;border-radius:11px;font-weight:700;color:var(--muted);background:transparent;min-width:56px}
-.seg button.on{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#2a1400}
+.seg button.on{background:#fff;color:#08275a}
 .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
 .switch{width:52px;height:30px;border-radius:999px;background:rgba(255,255,255,.15);position:relative;transition:.2s;flex:none}
 .switch::after{content:"";position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
@@ -142,7 +142,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .mid .q-no{font-family:'Lalezar';font-size:1.5rem}
 .mid small{color:var(--muted);display:block}
 .progress{height:7px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden;margin:0 0 16px}
-.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),var(--gold));transition:width .5s;border-radius:9px}
+.progress i{display:block;height:100%;background:linear-gradient(90deg,var(--teal),#fff);transition:width .5s;border-radius:9px}
 
 .turnbar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;font-weight:800;font-size:1.15rem;flex-wrap:wrap}
 .pill{padding:7px 16px;border-radius:999px;background:color-mix(in srgb,var(--tc) 25%,transparent);border:1.5px solid var(--tc);display:inline-flex;align-items:center;gap:8px}
@@ -171,7 +171,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .answers{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:960px;margin:0 auto}
 .ans{display:flex;align-items:center;gap:12px;padding:16px 16px;border-radius:18px;background:rgba(255,255,255,.08);border:2px solid var(--line);font-weight:800;font-size:clamp(1.02rem,2vw,1.25rem);text-align:right;transition:.18s;min-height:66px;position:relative}
 .ans .k{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(255,255,255,.12);flex:none;font-family:'Lalezar';font-size:1.25rem}
-.ans:hover:not([disabled]){background:rgba(255,255,255,.15);border-color:var(--gold);transform:translateY(-2px)}
+.ans:hover:not([disabled]){background:rgba(255,255,255,.15);border-color:#fff;transform:translateY(-2px)}
 .ans[disabled]{cursor:default}
 .ans.gone{opacity:.18;filter:grayscale(1)}
 .ans.right{background:linear-gradient(135deg,rgba(34,211,154,.45),rgba(34,211,154,.2));border-color:var(--ok);animation:pop .4s}
@@ -186,7 +186,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .answers.tf .ans[data-v="false"]{border-color:rgba(255,77,109,.5)}
 .lifelines{display:flex;justify-content:center;gap:10px;margin-top:18px;flex-wrap:wrap}
 .life{padding:10px 16px;border-radius:14px;background:rgba(255,255,255,.07);border:1.5px solid var(--line);font-weight:700;display:flex;gap:7px;align-items:center}
-.life:hover:not([disabled]){border-color:var(--gold);background:rgba(255,201,74,.12)}
+.life:hover:not([disabled]){border-color:#fff;background:rgba(255,255,255,.12)}
 .life[disabled]{opacity:.3;cursor:not-allowed}
 .feedback{margin-top:18px;padding:18px;border-radius:18px;font-weight:800;font-size:1.2rem;display:flex;flex-direction:column;gap:12px;align-items:center;animation:fadeUp .3s}
 .feedback.ok{background:rgba(34,211,154,.14);border:1.5px solid rgba(34,211,154,.5)}
@@ -207,7 +207,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .board .colh{padding:12px 8px;border-radius:16px;text-align:center;font-weight:800;background:color-mix(in srgb,var(--cc) 28%,transparent);border:1.5px solid var(--cc);font-size:.98rem;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:84px;justify-content:center}
 .board .colh .e{font-size:1.6rem}
 .tile{border-radius:16px;min-height:72px;font-family:'Lalezar';font-size:2rem;color:var(--gold);background:linear-gradient(160deg,rgba(255,255,255,.12),rgba(255,255,255,.04));border:1.5px solid var(--line);transition:.18s;box-shadow:inset 0 -4px 0 rgba(0,0,0,.2)}
-.tile:hover:not([disabled]){transform:translateY(-3px) scale(1.03);border-color:var(--gold);box-shadow:0 10px 24px rgba(255,201,74,.25)}
+.tile:hover:not([disabled]){transform:translateY(-3px) scale(1.03);border-color:#fff;box-shadow:0 10px 24px rgba(255,255,255,.2)}
 .tile[disabled]{color:rgba(255,255,255,.75);font-size:1.6rem;cursor:default}
 .tile.used-a{background:color-mix(in srgb,var(--a) 35%,transparent);border-color:var(--a)}
 .tile.used-b{background:color-mix(in srgb,var(--b) 35%,transparent);border-color:var(--b)}
@@ -221,11 +221,11 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .final{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:22px 0}
 .final .card{border-top:5px solid var(--tc)}
 .final .big{font-family:'Lalezar';font-size:3.4rem;line-height:1.1}
-.final.win-a .ta,.final.win-b .tb{box-shadow:0 0 0 3px var(--gold),0 0 40px rgba(255,201,74,.35)}
+.final.win-a .ta,.final.win-b .tb{box-shadow:0 0 0 3px #fff,0 0 40px rgba(255,255,255,.3)}
 .stats{text-align:right;margin-top:10px;display:flex;flex-direction:column;gap:6px}
 .stats div{display:flex;justify-content:space-between;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.05);font-weight:700}
 .stats div span:last-child{color:var(--muted)}
-.mvp{display:inline-flex;gap:10px;align-items:center;padding:12px 22px;border-radius:999px;background:linear-gradient(135deg,rgba(255,201,74,.25),rgba(255,159,28,.1));border:1.5px solid var(--gold);font-weight:800;font-size:1.15rem;margin-bottom:18px}
+.mvp{display:inline-flex;gap:10px;align-items:center;padding:12px 22px;border-radius:999px;background:linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,.06));border:1.5px solid #fff;font-weight:800;font-size:1.15rem;margin-bottom:18px}
 #confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
 
 .foot{position:fixed;bottom:0;inset-inline:0;z-index:2;text-align:center;padding:8px;font-size:.75rem;color:rgba(168,196,234,.75);background:linear-gradient(transparent,rgba(3,13,34,.75))}
@@ -237,6 +237,17 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 .emojis{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:12px 0}
 .emojis button{font-size:28px;padding:8px;border-radius:12px;background:rgba(255,255,255,.06)}
 .emojis button:hover{background:rgba(255,255,255,.16)}
+.rules{max-width:760px!important;text-align:right!important;max-height:88vh;overflow:auto;padding:24px!important}
+.rules h3{text-align:center;font-size:2rem!important}
+.rules .sub{text-align:center;color:var(--muted);margin-bottom:16px}
+.rules section{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.rules h4{font-size:1.12rem;font-weight:800;margin-bottom:8px;display:flex;gap:8px;align-items:center}
+.rules ul{padding-inline-start:20px;display:flex;flex-direction:column;gap:5px;line-height:1.7}
+.rules li b{color:#fff}
+.rules table{width:100%;border-collapse:collapse;margin-top:4px}
+.rules td{padding:7px 10px;border-bottom:1px solid var(--line)}
+.rules td:last-child{font-weight:800;text-align:left;white-space:nowrap}
+.rules .close{display:block;margin:14px auto 0}
 @media print{body *{display:none!important}body::after{content:"الطباعة غير مسموحة";display:block!important}}
 @media (max-width:820px){
   .teams{grid-template-columns:1fr}.vs{text-align:center;font-size:1.8rem}
@@ -261,6 +272,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
   <header class="topbar hidden" id="topbar">
     <div class="brand"><div class="logo">🧠</div><div><h1>تحدّي العقول</h1><small>بوابة المسابقات الثقافية — فريق ضد فريق</small></div></div>
     <div class="tools">
+      <button class="iconbtn" id="btnRules" title="طريقة اللعب">📖</button>
       <button class="iconbtn" id="btnSound" title="المؤثرات الصوتية">🔊</button>
       <button class="iconbtn" id="btnMusic" title="الموسيقى">🎵</button>
       <button class="iconbtn" id="btnFull" title="ملء الشاشة">⛶</button>
@@ -287,7 +299,7 @@ button{font-family:inherit;cursor:pointer;border:0;color:inherit}
 
   <!-- إعداد -->
   <section id="setup" class="screen hidden">
-    <div class="hero"><h2>جهّزوا الفريقين! ⚔️</h2><p>من فرد واحد حتى 6 أعضاء لكل فريق، يتناوب الأعضاء على الإجابة</p></div>
+    <div class="hero"><h2>جهّزوا الفريقين! ⚔️</h2><p>من فرد واحد حتى 6 أعضاء لكل فريق، يتناوب الأعضاء على الإجابة</p><button class="btn btn-ghost" id="rulesBtn" style="margin-top:12px">📖 تعليمات المسابقة وطريقة اللعب</button></div>
     <div class="modes" id="modes">
       <button class="mode on" data-mode="classic"><div class="ico">⚡</div><div><b>الجولات السريعة</b><span>أسئلة متتالية يتناوب عليها الفريقان مع فرصة السرقة</span></div></button>
       <button class="mode" data-mode="board"><div class="ico">🎯</div><div><b>لوحة التحدي</b><span>كل فريق يختار الفئة وقيمة السؤال من اللوحة</span></div></button>
@@ -359,7 +371,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const AR_NUM=n=>String(n);
 const LETTERS=['أ','ب','ج','د'];
 const CATS={
-  general:{n:'معلومات عامة',e:'💡',c:'#ffc94a'},
+  general:{n:'معلومات عامة',e:'💡',c:'#dbe9ff'},
   countries:{n:'دول وعواصم',e:'🌍',c:'#36e2d0'},
   sports:{n:'رياضة',e:'⚽',c:'#22d39a'},
   culture:{n:'ثقافة وأدب',e:'📚',c:'#7fa8ff'},
@@ -442,7 +454,7 @@ function show(id){['lock','setup','game','results'].forEach(s=>$('#'+s).classLis
 
 async function tryUnlock(code,silent){
   const btn=$('#unlockBtn');btn.disabled=true;btn.textContent='⏳ جارٍ التحقق...';$('#lockErr').textContent='';
-  try{BANK=await unlock(code);if($('#remember').checked||silent)store.set('code',code);SFX.whoosh();initSetup();show('setup')}
+  try{BANK=await unlock(code);if($('#remember').checked||silent)store.set('code',code);SFX.whoosh();initSetup();show('setup');if(!store.get('rulesSeen',false)){store.set('rulesSeen',true);setTimeout(showRules,500)}}
   catch(e){store.del('code');if(!silent){$('#lockErr').textContent=e.message==='nobank'?'تعذر تحميل بنك الأسئلة.':'رمز الدخول غير صحيح';$('#lockbox').classList.remove('shake');void $('#lockbox').offsetWidth;$('#lockbox').classList.add('shake');SFX.bad()}}
   finally{btn.disabled=false;btn.textContent='🔓 دخول'}
 }
@@ -460,6 +472,53 @@ $('#btnHome').onclick=()=>confirmBox('إنهاء المباراة؟','سيتم �
 
 function confirmBox(title,msg,okText,onOk){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="card"><h3>${esc(title)}</h3><p>${esc(msg)}</p><div class="row"><button class="btn btn-gold">${esc(okText)}</button><button class="btn btn-ghost">إلغاء</button></div></div>`;document.body.appendChild(m);const [a,b]=m.querySelectorAll('button');a.onclick=()=>{m.remove();onOk()};b.onclick=()=>m.remove();m.onclick=e=>{if(e.target===m)m.remove()}}
 
+
+/* ========= التعليمات ========= */
+function showRules(){
+  const m=document.createElement('div');m.className='modal';
+  m.innerHTML=`<div class="card rules">
+  <h3>📖 تعليمات المسابقة</h3><div class="sub">اقرأها مع المشاركين قبل البدء</div>
+  <section><h4>🎯 فكرة المسابقة</h4><ul>
+    <li>يتنافس <b>فريقان</b>، ويضم كل فريق من <b>عضو واحد حتى 6 أعضاء</b>.</li>
+    <li>الأسئلة إما <b>اختيار من 4 إجابات</b> (إجابة واحدة صحيحة) أو <b>صح / خطأ</b>، وبعضها مدعوم <b>بصورة</b>: علم أو شكل دولة على الخريطة أو لغز إيموجي.</li>
+    <li>الفريق صاحب <b>أعلى مجموع نقاط</b> في النهاية هو الفائز، ويُعلن <b>نجم المباراة</b> صاحب أكثر إجابات صحيحة.</li></ul></section>
+  <section><h4>🕹️ أوضاع اللعب</h4><ul>
+    <li><b>⚡ الجولات السريعة:</b> الأسئلة تُطرح على الفريقين بالتناوب، سؤال لكل فريق.</li>
+    <li><b>🎯 لوحة التحدي:</b> الفريق صاحب الدور يختار من اللوحة <b>الفئة وقيمة السؤال</b> (100 أو 200 أو 300)، وكلما ارتفعت القيمة زادت الصعوبة. تنتهي اللعبة عند استخدام كل خانات اللوحة.</li></ul></section>
+  <section><h4>🎤 من يجيب؟</h4><ul>
+    <li>يظهر في أعلى السؤال <b>اسم الفريق واسم العضو</b> صاحب الدور، ويتناوب أعضاء الفريق على الإجابة بالترتيب.</li>
+    <li><b>يجيب العضو صاحب الدور وحده</b> دون مساعدة من زملائه، إلا في <b>فرصة السرقة</b> حيث يتشاور الفريق بالكامل.</li>
+    <li><b>الإجابة الأولى هي المعتمدة</b>: يضغط مقدّم المسابقة على الإجابة التي ينطقها المشارك أولًا، ولا يمكن تغييرها.</li></ul></section>
+  <section><h4>🏅 النقاط</h4><table>
+    <tr><td>⭐ سؤال سهل</td><td>100 نقطة</td></tr>
+    <tr><td>⭐⭐ سؤال متوسط</td><td>200 نقطة</td></tr>
+    <tr><td>⭐⭐⭐ سؤال صعب</td><td>300 نقطة</td></tr>
+    <tr><td>🦅 سرقة ناجحة</td><td>نصف نقاط السؤال</td></tr>
+    <tr><td>🔥 3 إجابات صحيحة متتالية للفريق</td><td>+50 مكافأة</td></tr>
+    <tr><td>❌ إجابة خاطئة أو انتهاء الوقت</td><td>لا نقاط (بلا خصم)</td></tr></table></section>
+  <section><h4>⏱️ الوقت</h4><ul>
+    <li>لكل سؤال وقت محدد (يُختار قبل البدء: 15 أو 30 أو 45 أو 60 ثانية، أو بلا وقت).</li>
+    <li>يتحول العداد إلى <b>اللون الأحمر</b> في آخر 5 ثوانٍ، وإذا انتهى الوقت تُحسب الإجابة خاطئة.</li></ul></section>
+  <section><h4>🦅 فرصة السرقة</h4><ul>
+    <li>إذا أخطأ الفريق أو انتهى وقته في سؤال <b>الاختيارات الأربعة</b>، يحصل الفريق الآخر على فرصة الإجابة <b>بالتشاور الجماعي</b>.</li>
+    <li>مدة السرقة 15 ثانية بحد أقصى، وتُستبعد الإجابة الخاطئة السابقة.</li>
+    <li>لا توجد سرقة في أسئلة صح / خطأ.</li></ul></section>
+  <section><h4>🆘 وسائل المساعدة</h4><ul>
+    <li>لكل فريق <b>3 وسائل</b>، تُستخدم كل وسيلة <b>مرة واحدة فقط</b> في المباراة:</li>
+    <li><b>✂️ حذف إجابتين:</b> تُحذف إجابتان خاطئتان (لأسئلة الاختيارات فقط).</li>
+    <li><b>⏱️ +15 ثانية:</b> وقت إضافي للسؤال الحالي.</li>
+    <li><b>🔄 تبديل السؤال:</b> يُستبدل السؤال بسؤال آخر.</li>
+    <li>تظهر الوسائل المتبقية لكل فريق تحت اسمه في لوحة النتائج.</li></ul></section>
+  <section><h4>🎛️ للمقدّم</h4><ul>
+    <li>يُفضّل عرض المسابقة على شاشة كبيرة باستخدام زر <b>⛶ ملء الشاشة</b>.</li>
+    <li>يمكن الإجابة بلوحة المفاتيح: الأرقام <b>1 2 3 4</b> للإجابات بالترتيب.</li>
+    <li><b>🔊</b> للمؤثرات الصوتية، <b>🎵</b> للموسيقى، <b>🏠</b> لإنهاء المباراة وعرض النتيجة.</li>
+    <li>لا تتكرر الأسئلة بين المباريات حتى تنفد الأسئلة المتاحة.</li></ul></section>
+  <button class="btn btn-gold close">فهمت، لنبدأ! 🚀</button></div>`;
+  document.body.appendChild(m);SFX.click();
+  m.querySelector('.close').onclick=()=>{m.remove();SFX.click()};m.onclick=e=>{if(e.target===m)m.remove()};
+}
+$('#btnRules').onclick=showRules;$('#rulesBtn').onclick=showRules;
 /* ========= الإعداد ========= */
 const DEF={mode:'classic',perTeam:10,boardRows:1,timer:30,types:'all',diff:0,steal:true,images:true,cats:Object.keys(CATS),
   teams:[{name:'الصقور',color:COLORS[0],icon:'🦅',members:['','']},{name:'الأسود',color:COLORS[1],icon:'🦁',members:['','']}]};
