@@ -1516,7 +1516,7 @@
         else if (k.part === "tx") { txData = v; activeFinChanged = true; }
         else if (k.part === "supporters") supportersData = v;
         else if (k.part === "contrib") contribData = v;
-        else if (k.part === "meta") { lastUpdatedStr = v.lastUpdatedStr; pageUpdated = seedPageUpdated(v); }
+        else if (k.part === "meta") { lastUpdatedStr = cleanUpdStr(v.lastUpdatedStr); pageUpdated = seedPageUpdated(v); }
         activeChanged = true;
       } else {
         const st = yearStash[k.year] || (yearStash[k.year] = {});
@@ -1524,7 +1524,7 @@
         else if (k.part === "tx") st.txData = v;
         else if (k.part === "supporters") st.supportersData = v;
         else if (k.part === "contrib") st.contribData = v;
-        else if (k.part === "meta") { st.lastUpdatedStr = v.lastUpdatedStr; st.pageUpdated = seedPageUpdated(v); }
+        else if (k.part === "meta") { st.lastUpdatedStr = cleanUpdStr(v.lastUpdatedStr); st.pageUpdated = seedPageUpdated(v); }
       }
     });
     if (!activeChanged) return;
@@ -1845,9 +1845,11 @@
 
   // Pages never stamped before take the general date they were last saved under, so a later
   // edit on one page does not make the other pages look freshly updated.
+  // Older saves wrote the date twice ("21 نوفمبر 2026 م (2026/11/21)"); keep one.
+  function cleanUpdStr(t) { return String(t || "").replace(/\s*\(\d{4}\/\d{1,2}\/\d{1,2}\)\s*$/, "").trim(); }
   function seedPageUpdated(meta) {
     const pu = (meta.pageUpdated && typeof meta.pageUpdated === "object") ? Object.assign({}, meta.pageUpdated) : {};
-    ["fin", "tx", "supporters", "contrib"].forEach(p => { if (!pu[p] || !pu[p].s) pu[p] = { t: 0, s: meta.lastUpdatedStr || "—" }; });
+    ["fin", "tx", "supporters", "contrib"].forEach(p => { if (!pu[p] || !pu[p].s) pu[p] = { t: 0, s: cleanUpdStr(meta.lastUpdatedStr) || "—" }; else pu[p] = { t: pu[p].t, s: cleanUpdStr(pu[p].s) }; });
     return pu;
   }
   function pageStamp(parts) {
@@ -1904,7 +1906,7 @@
     const y = now.getFullYear();
     const mm = String(now.getMonth() + 1).padStart(2, "0");
     const dd = String(d).padStart(2, "0");
-    return `${d} ${m} ${y} م (${y}/${mm}/${dd})`;
+    return `${d} ${m} ${y} م`;
   }
 
   function fmtNum(val) {
