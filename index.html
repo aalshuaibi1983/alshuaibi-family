@@ -849,6 +849,24 @@
 <button class="btn-action btn-green" onclick="switchView('ledger'); setTimeout(() =&gt; document.getElementById('adminTxFormBox')?.scrollIntoView({behavior:'smooth'}), 100);" style="justify-content:center;" type="button">📝 إضافة إيراد / مصروف</button>
 </div>
 </div>
+<!-- Backups -->
+<div class="admin-box" style="grid-column: 1 / -1;">
+<h4>🗄️ النسخ الاحتياطي واستعادة البيانات</h4>
+<p>تُحفظ نسخة تلقائية كل يوم الساعة 3 فجراً، ونسخة قبل أول حفظ تقوم به كل ساعة، في مجلد خاص بك في Google Drive (يُحتفظ بآخر 90 نسخة). يمكنك أيضاً حفظ نسخة الآن أو استعادة أي نسخة سابقة.</p>
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin:10px 0;">
+<button class="btn-action btn-gold" id="bkNowBtn" onclick="backupNow()" type="button">💾 حفظ نسخة احتياطية الآن</button>
+<button class="btn-action btn-outline" onclick="loadBackupList()" type="button">🔄 تحديث القائمة</button>
+<button class="btn-action btn-outline" onclick="exportPublishedHtml()" type="button">⬇️ تنزيل نسخة على جهازي</button>
+<label class="btn-action btn-outline" style="cursor:pointer;">📂 استعادة من ملف على جهازي<input accept=".json,application/json" onchange="restoreFromFile(this)" style="display:none;" type="file"/></label>
+</div>
+<div id="bkStatus" style="font-size:0.84rem; font-weight:700; margin-bottom:8px; color:var(--muted);"></div>
+<div class="table-wrapper" style="max-height:320px; overflow:auto;">
+<table class="data-table" style="min-width:520px;">
+<thead><tr><th>النسخة</th><th>التاريخ والوقت</th><th>الحجم</th><th>إجراء</th></tr></thead>
+<tbody id="bkListBody"><tr><td colspan="4" style="text-align:center; color:var(--muted);">اضغط «تحديث القائمة» لعرض النسخ المحفوظة</td></tr></tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="adminStatusMsg" style="margin-top:12px; font-size:0.86rem; font-weight:700; color:var(--primary-dark);"></div>
 </div>
@@ -1966,7 +1984,7 @@
   function setAdminState(flag) {
     isAdmin = !!flag;
     if (!isAdmin) portalAdminPin = "";
-    else setTimeout(portalSeedMissing, 0);
+    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); }
     const panel = document.getElementById("adminPanel");
     const btn = document.getElementById("adminToggleBtn");
     const badge = document.getElementById("roleBadge");
@@ -4281,6 +4299,88 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   }
 
   /* Export clean HTML for members with Admin tab/panel completely removed */
+
+  // ===== Backups (stored by the server in the owner's Google Drive) =====
+  let bkCache = [];
+  function bkMsg(t, color) { const el = document.getElementById("bkStatus"); if (el) { el.textContent = t; el.style.color = color || "var(--muted)"; } }
+  async function bkCall(body) {
+    const res = await fetch(PORTAL_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(Object.assign({ pin: portalAdminPin }, body)) });
+    const out = await res.json();
+    if (!out || !out.ok) throw new Error(out && out.error ? out.error : "failed");
+    return out;
+  }
+  function bkLabel(name) {
+    const m = String(name).match(/_(يومية|قبل-الحفظ|يدوية|قبل-الاستعادة)\.json$/);
+    return ({ "يومية": "📅 يومية تلقائية", "قبل-الحفظ": "🛡️ قبل التعديل", "يدوية": "💾 يدوية", "قبل-الاستعادة": "↩️ قبل الاستعادة" })[m && m[1]] || "نسخة";
+  }
+  function renderBackupList(list) {
+    bkCache = list || [];
+    const tb = document.getElementById("bkListBody");
+    if (!tb) return;
+    if (!bkCache.length) { tb.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--muted);">لا توجد نسخ محفوظة بعد</td></tr>'; return; }
+    tb.innerHTML = bkCache.map((b, i) => {
+      const d = new Date(b.date);
+      const when = `${d.getDate()} ${AR_MONTHS_G[d.getMonth()]} ${d.getFullYear()} م — ${fmtClockTime(d)}`;
+      const kb = (Number(b.size || 0) / 1024).toFixed(0);
+      return `<tr><td style="font-weight:700;">${bkLabel(b.name)}</td><td>${when}</td><td>${kb} ك.ب</td>
+        <td><button class="btn-action btn-outline" style="padding:5px 10px; font-size:0.78rem;" onclick="restoreBackup(${i})" type="button">↩️ استعادة</button></td></tr>`;
+    }).join("");
+  }
+  async function loadBackupList() {
+    if (!isAdmin) return;
+    bkMsg("⏳ جارٍ جلب قائمة النسخ...");
+    try { const out = await bkCall({ action: "listBackups" }); renderBackupList(out.list); bkMsg(`✅ عدد النسخ المحفوظة: ${out.list.length}`, "var(--success, #2E7D32)"); }
+    catch (e) { bkMsg(e.message === "bad" ? "⚠️ الخادم يحتاج تحديثاً لدعم النسخ الاحتياطي" : "⚠️ تعذر جلب القائمة: " + e.message, "#C62828"); }
+  }
+  async function backupNow() {
+    if (!isAdmin) return;
+    const btn = document.getElementById("bkNowBtn"); if (btn) btn.disabled = true;
+    bkMsg("⏳ جارٍ حفظ نسخة احتياطية...");
+    try { await portalFlush(); const out = await bkCall({ action: "backup" }); renderBackupList(out.list); bkMsg("✅ تم حفظ نسخة احتياطية الآن في Google Drive", "var(--success, #2E7D32)"); }
+    catch (e) { bkMsg(e.message === "bad" ? "⚠️ الخادم يحتاج تحديثاً لدعم النسخ الاحتياطي" : "⚠️ تعذر الحفظ: " + e.message, "#C62828"); }
+    finally { if (btn) btn.disabled = false; }
+  }
+  async function restoreBackup(i) {
+    const b = bkCache[i]; if (!b || !isAdmin) return;
+    const d = new Date(b.date);
+    const when = `${d.getDate()} ${AR_MONTHS_G[d.getMonth()]} ${d.getFullYear()} م — ${fmtClockTime(d)}`;
+    if (!confirm(`سيتم استبدال كل بيانات البوابة الحالية ببيانات النسخة المحفوظة في:\n${when}\n\nستُحفظ نسخة من البيانات الحالية تلقائياً قبل الاستعادة، ويمكنك الرجوع إليها.\n\nهل تريد المتابعة؟`)) return;
+    bkMsg("⏳ جارٍ الاستعادة...");
+    try {
+      await portalFlush();
+      const out = await bkCall({ action: "restore", id: b.id });
+      portalServerKeys = Object.keys(out.data || {});
+      portalApply(out.data || {});
+      renderBackupList(out.list);
+      bkMsg("✅ تمت الاستعادة بنجاح، وتظهر البيانات المستعادة الآن لجميع أفراد الأسرة", "var(--success, #2E7D32)");
+    } catch (e) { bkMsg("⚠️ تعذرت الاستعادة: " + e.message, "#C62828"); }
+  }
+  function restoreFromFile(input) {
+    const f = input.files && input.files[0]; input.value = "";
+    if (!f || !isAdmin) return;
+    const r = new FileReader();
+    r.onload = async () => {
+      let parts = {};
+      try {
+        const j = JSON.parse(r.result); const data = j && j.data ? j.data : j;
+        Object.keys(data || {}).forEach(k => { if (/^(fin|tx|supporters|contrib|meta)(_\d{4})?$/.test(k)) parts[k] = data[k]; });
+      } catch (e) { parts = {}; }
+      if (!Object.keys(parts).length) { bkMsg("⚠️ الملف لا يحتوي على نسخة احتياطية صالحة", "#C62828"); return; }
+      if (!confirm(`سيتم استبدال بيانات البوابة الحالية ببيانات الملف:\n${f.name}\n\nهل تريد المتابعة؟`)) return;
+      bkMsg("⏳ جارٍ الاستعادة من الملف...");
+      try {
+        try { await bkCall({ action: "backup" }); } catch (e) {}
+        await portalPost(parts);
+        const rd = await portalRead(portalAdminPin);
+        if (rd && rd.data) { portalServerKeys = Object.keys(rd.data); portalApply(rd.data); }
+        bkMsg("✅ تمت الاستعادة من الملف بنجاح", "var(--success, #2E7D32)");
+        loadBackupList();
+      } catch (e) { bkMsg("⚠️ تعذرت الاستعادة: " + e.message, "#C62828"); }
+    };
+    r.readAsText(f, "utf-8");
+  }
+
   function exportPublishedHtml() {
     const dump = {};
     PORTAL_YEARS.forEach(y => PORTAL_PARTS.forEach(p => { const k = yearKey(p, y); const v = portalCurrent(k); if (v != null) dump[k] = v; }));
