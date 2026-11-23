@@ -852,7 +852,7 @@
 <!-- Backups -->
 <div class="admin-box" style="grid-column: 1 / -1;">
 <h4>🗄️ النسخ الاحتياطي واستعادة البيانات</h4>
-<p>تُحفظ نسخة تلقائية كل يوم، ونسخة تلقائية قبل كل تعديل تقوم به، في مجلد خاص بك في Google Drive (يُحتفظ بآخر 90 نسخة). يمكنك أيضاً حفظ نسخة الآن أو استعادة أي نسخة سابقة.</p>
+<p>تُحفظ نسخة تلقائية كل يوم، ونسخة تلقائية قبل كل تعديل تقوم به، داخل ملف Google Sheets الخاص بالبوابة في ورقة مستقلة اسمها portal_backups (يُحتفظ بآخر 60 نسخة). يمكنك أيضاً حفظ نسخة الآن أو استعادة أي نسخة سابقة.</p>
 <div style="display:flex; gap:8px; flex-wrap:wrap; margin:10px 0;">
 <button class="btn-action btn-gold" id="bkNowBtn" onclick="backupNow()" type="button">💾 حفظ نسخة احتياطية الآن</button>
 <button class="btn-action btn-outline" onclick="loadBackupList()" type="button">🔄 تحديث القائمة</button>
@@ -4337,7 +4337,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (!isAdmin) return;
     const btn = document.getElementById("bkNowBtn"); if (btn) btn.disabled = true;
     bkMsg("⏳ جارٍ حفظ نسخة احتياطية...");
-    try { await portalFlush(); const out = await bkCall({ action: "backup" }); renderBackupList(out.list); bkMsg("✅ تم حفظ نسخة احتياطية الآن في Google Drive", "var(--success, #2E7D32)"); }
+    try { await portalFlush(); const out = await bkCall({ action: "backup" }); renderBackupList(out.list); bkMsg("✅ تم حفظ نسخة احتياطية الآن", "var(--success, #2E7D32)"); }
     catch (e) { bkMsg(e.message === "bad" ? "⚠️ الخادم يحتاج تحديثاً لدعم النسخ الاحتياطي" : "⚠️ تعذر الحفظ: " + e.message, "#C62828"); }
     finally { if (btn) btn.disabled = false; }
   }
