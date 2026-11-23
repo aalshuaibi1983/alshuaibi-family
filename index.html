@@ -210,6 +210,31 @@
   .log-year { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #F5EBC8; color: var(--primary-dark); font-size: 0.75rem; font-weight: 800; }
   .newyear-note { background: #FFFBEA; border: 1px dashed var(--gold); border-radius: 10px; padding: 10px 12px; font-size: 0.84rem; line-height: 1.8; }
 
+  .nc-chip { display:inline-block; padding:2px 9px; border-radius:999px; font-size:0.75rem; font-weight:800; }
+  .nc-unpaid { background:#FEF2F2; color:#B42318; }
+  .nc-paid { background:#EBF9F1; color:#1E7B45; }
+  .nc-exempt { background:#F1F1F1; color:#5C6B5E; }
+  .nc-match { background:#FFFBEA; color:#8A6A00; }
+  .att-btn { padding:3px 8px; font-size:0.78rem; }
+  .att-has { background:#FFFBEA; border-color:var(--gold); }
+  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9999; display:none; align-items:center; justify-content:center; padding:14px; }
+  .modal-bg.show { display:flex; }
+  .modal-box { background:#FFF; border-radius:16px; width:min(760px,100%); max-height:92vh; overflow:auto; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,0.35); }
+  .modal-box h3 { color:var(--primary-dark); margin:0 0 10px; font-size:1.05rem; }
+  .att-list { display:flex; flex-direction:column; gap:8px; margin:10px 0; }
+  .att-item { display:flex; align-items:center; gap:8px; flex-wrap:wrap; border:1px solid var(--border); border-radius:10px; padding:8px 10px; }
+  .att-item .nm { flex:1; min-width:160px; font-weight:700; font-size:0.85rem; word-break:break-all; }
+  .att-preview { margin-top:10px; text-align:center; }
+  .att-preview img { max-width:100%; max-height:60vh; border-radius:10px; border:1px solid var(--border); }
+  .att-preview iframe { width:100%; height:65vh; border:1px solid var(--border); border-radius:10px; }
+  .mystatus-card { background:linear-gradient(135deg,#FFFFFF 0%,#FAF6E8 100%); border:1.5px solid var(--gold); border-radius:16px; padding:16px; margin-bottom:18px; }
+  .mystatus-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .mystatus-row input { flex:1; min-width:220px; padding:10px 12px; border:1px solid var(--border); border-radius:10px; font-family:inherit; font-size:0.95rem; }
+  .ms-res { margin-top:12px; display:flex; flex-direction:column; gap:8px; }
+  .ms-person { background:#FFF; border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
+  .ms-person .nm { font-weight:800; color:var(--primary-dark); margin-bottom:6px; }
+  .ms-line { font-size:0.88rem; font-weight:700; margin:3px 0; }
+
   /* Update Date Banner */
   .update-banner {
     background: var(--gold-bg); border-bottom: 1px solid #E8D8A0;
@@ -855,6 +880,42 @@
 <button class="btn-action btn-green" onclick="switchView('ledger'); setTimeout(() =&gt; document.getElementById('adminTxFormBox')?.scrollIntoView({behavior:'smooth'}), 100);" style="justify-content:center;" type="button">📝 إضافة إيراد / مصروف</button>
 </div>
 </div>
+<!-- Non-contributors -->
+<div class="admin-box" style="grid-column: 1 / -1;">
+<h4>📋 قائمة غير المساهمين</h4>
+<p id="ncInfo">القائمة تظهر للمدير فقط.</p>
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0;">
+<select class="rec-input" id="ncBranch" onchange="renderNonContrib()" style="max-width:200px;"></select>
+<select class="rec-input" id="ncYear" onchange="renderNonContrib()" style="max-width:140px;"></select>
+<select class="rec-input" id="ncShow" onchange="renderNonContrib()" style="max-width:220px;">
+<option value="unpaid">غير المساهمين فقط</option>
+<option value="all">الكل (مع من سدّد)</option>
+<option value="paid">من سدّد بعد التذكير</option>
+</select>
+<label style="display:flex; align-items:center; gap:6px; font-size:0.84rem; font-weight:700;"><input id="ncExempt" onchange="renderNonContrib()" type="checkbox"/> إظهار المعفيين والمعسرين</label>
+<input class="rec-input" id="ncSearch" oninput="renderNonContrib()" placeholder="بحث بالاسم..." style="max-width:220px;" type="search"/>
+</div>
+<div id="ncStats" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;"></div>
+<div class="table-wrapper" style="max-height:420px; overflow:auto;">
+<table class="data-table" style="min-width:720px;">
+<thead><tr><th>م</th><th>الفرع</th><th>الاسم</th><th>الإعفاء</th><th>الحالة</th><th>إجراء</th></tr></thead>
+<tbody id="ncBody"></tbody>
+</table>
+</div>
+<details style="margin-top:12px;">
+<summary style="cursor:pointer; font-weight:800; color:var(--primary-dark);">✉️ رسالة التذكير (واتساب)</summary>
+<p style="font-size:0.82rem; color:var(--muted); margin:6px 0;">يمكنك تعديل النص. الكلمات بين الأقواس تُستبدل تلقائياً: {الفرع} {السنة} {العدد} {الأسماء}</p>
+<textarea class="rec-input" id="ncTemplate" oninput="ncTemplateChanged()" rows="7" style="width:100%; resize:vertical;"></textarea>
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:8px;">
+<button class="btn-action btn-gold" onclick="copyReminder()" type="button">📋 نسخ رسالة التذكير للفرع المختار</button>
+<button class="btn-action btn-outline" onclick="copyReminder(true)" type="button">📋 نسخ الأسماء فقط</button>
+<span id="ncCopyMsg" style="font-size:0.84rem; font-weight:700; color:var(--rev-green); align-self:center;"></span>
+</div>
+</details>
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;">
+<label class="btn-action btn-outline" style="cursor:pointer;">📂 تحديث القائمة من ملف Excel<input accept=".xlsx,.xls" onchange="importNonContrib(this)" style="display:none;" type="file"/></label>
+</div>
+</div>
 <!-- Bank reconciliation -->
 <div class="admin-box" style="grid-column: 1 / -1;">
 <h4>🏦 المطابقة البنكية</h4>
@@ -1130,6 +1191,10 @@
 <label>البيان التفصيلي للعملية</label>
 <input id="txDescInput" placeholder="اكتب وصف العملية المالية..." required="" type="text"/>
 </div>
+<div class="tx-field" style="grid-column: 1 / -1;">
+<label>📎 إرفاق فاتورة أو إيصال (اختياري — صورة أو PDF)</label>
+<input accept="image/*,application/pdf" id="txAttachInput" type="file"/>
+</div>
 </div>
 <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
 <button class="btn-action btn-green" type="submit">💾 تسجيل العملية وتحديث الحسابات</button>
@@ -1193,6 +1258,15 @@
 <!-- VIEW 2: CONTRIBUTORS DASHBOARD -->
 <div id="contributorsView" style="display: none;">
 <div class="page-updated">🕒 آخر تحديث لهذه الصفحة: <strong id="puContrib"></strong></div>
+<div class="mystatus-card">
+<h3 style="color:var(--primary-dark); margin:0 0 6px; font-size:1.02rem;">🔎 حالة مساهمتي</h3>
+<p style="font-size:0.85rem; color:var(--muted); margin:0 0 10px;">اكتب اسمك الثلاثي أو الرباعي (مثال: محمد عبدالله إبراهيم) لمعرفة هل سُجّلت مساهمتك في كل سنة.</p>
+<form class="mystatus-row" onsubmit="event.preventDefault(); searchMyStatus();">
+<input autocomplete="off" id="myStatusInput" placeholder="الاسم الثلاثي أو الرباعي..." type="search"/>
+<button class="btn-action btn-gold" type="submit">بحث</button>
+</form>
+<div class="ms-res" id="myStatusResult"></div>
+</div>
 <div style="margin-bottom:16px; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;">
 <button class="btn-action btn-outline" onclick="switchView('finance')">→ العودة إلى صفحة المؤشرات الرئيسية</button>
 <!-- PDF Print Controls -->
@@ -1487,6 +1561,7 @@
   }
   function portalCurrent(key) {
     if (key === "changelog") return changeLog;
+    if (key === "noncontrib") return nonContrib;
     if (key === "bankrec") return bankRec;
     const k = parseYearKey(key);
     if (!k) return null;
@@ -1571,6 +1646,13 @@
     if (!data || typeof data !== "object") return;
     let activeChanged = false, activeFinChanged = false;
     Object.keys(data).forEach(key => {
+      if (key === "noncontrib" && data[key] != null) {
+        const json = JSON.stringify(data[key]);
+        if (portalLastJson[key] === json || portalDirty.has(key)) return;
+        portalLastJson[key] = json;
+        if (typeof data[key] === "object") { nonContrib = portalClone(data[key]); if (isAdmin) renderNonContrib(); }
+        return;
+      }
       if ((key === "changelog" || key === "bankrec") && data[key] != null) {
         const json = JSON.stringify(data[key]);
         if (portalLastJson[key] === json || portalDirty.has(key)) return;
@@ -2074,7 +2156,7 @@
   function setAdminState(flag) {
     isAdmin = !!flag;
     if (!isAdmin) portalAdminPin = "";
-    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); }, 100); }
+    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); }, 100); }
     const panel = document.getElementById("adminPanel");
     const btn = document.getElementById("adminToggleBtn");
     const badge = document.getElementById("roleBadge");
@@ -3992,8 +4074,9 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const linkedAccount = mapTypeToAccount(typeVal);
     if (!txData[monthName]) txData[monthName] = [];
 
+    const newTxId = Date.now();
     txData[monthName].push({
-      id: Date.now(),
+      id: newTxId,
       gDate: gDate,
       hDate: hDate,
       desc: desc,
@@ -4011,6 +4094,14 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     portalStore.setItem("shuaibi_fin_1448", JSON.stringify(finData));
     portalStore.setItem("shuaibi_updated_1448", lastUpdatedStr);
 
+    const attInp = document.getElementById("txAttachInput");
+    if (attInp && attInp.files && attInp.files[0]) {
+      const file = attInp.files[0]; attInp.value = "";
+      uploadInvoice(file, monthName, newTxId).then(ok => {
+        const fb2 = document.getElementById("txFormFeedback");
+        if (fb2) fb2.textContent = ok ? "✅ تم تسجيل العملية وإرفاق الفاتورة." : "⚠️ سُجّلت العملية لكن تعذر رفع الفاتورة — يمكنك إرفاقها من زر 📎 في الجدول.";
+      });
+    }
     document.getElementById("txAmountInput").value = "";
     document.getElementById("txDescInput").value = "";
     const fb = document.getElementById("txFormFeedback");
@@ -4078,8 +4169,9 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       runningBal += (r - e);
 
       const balCls = runningBal < 0 ? "bal-neg" : "bal-pos";
+      const attN = Array.isArray(tx.att) ? tx.att.length : 0;
       const adminCell = isAdmin
-        ? `<td><button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
+        ? `<td style="white-space:nowrap;"><button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${attN ? " " + attN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
         : "";
 
       rowsHtml.push(`<tr>
@@ -4396,7 +4488,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // =====================================================================
   let changeLog = [];
   let bankRec = {};
-  const PART_LABEL = { tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
+  const PART_LABEL = { noncontrib: "غير المساهمين", tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
   const escHtml = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const money = v => fmtNum(Number(v || 0)) + " ر.س";
 
@@ -4407,6 +4499,22 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   function describeChange(key, oldJson, newVal) {
     if (key === "meta") return [];
     const now = new Date().toISOString();
+    if (key === "noncontrib") {
+      const old = oldJson ? JSON.parse(oldJson) : { people: [] };
+      const st = o => { const m = {}; ((o && o.people) || []).forEach(p => { m[p.branch + "|" + p.name] = JSON.stringify(p.years || {}); }); return m; };
+      const a = st(old), b = st(newVal), out = [];
+      const added = Object.keys(b).filter(k => !(k in a)).length, removed = Object.keys(a).filter(k => !(k in b)).length;
+      const changed = Object.keys(b).filter(k => k in a && a[k] !== b[k]);
+      if (added || removed) out.push({ t: now, y: "", p: "noncontrib", d: `تحديث قائمة غير المساهمين: إضافة ${added}، حذف ${removed}` });
+      if (changed.length > 6) out.push({ t: now, y: "", p: "noncontrib", d: `تغيير حالة ${changed.length} شخص في قائمة غير المساهمين` });
+      else changed.forEach(k => {
+        const p = ((newVal && newVal.people) || []).find(x => x.branch + "|" + x.name === k) || {};
+        const yrs = p.years || {}, prev = JSON.parse(a[k] || "{}");
+        Object.keys(yrs).forEach(y => { if (prev[y] !== yrs[y]) out.push({ t: now, y, p: "noncontrib", d: (yrs[y] ? "إعادة إلى غير المساهمين: " : "تسجيل سداد مساهمة: ") + shortName(p.name) + " (" + p.branch + ")" }); });
+      });
+      if (!out.length && oldJson && JSON.stringify(old.template) !== JSON.stringify((newVal || {}).template)) out.push({ t: now, y: "", p: "noncontrib", d: "تعديل نص رسالة التذكير" });
+      return out;
+    }
     if (key === "bankrec") {
       const old = oldJson ? JSON.parse(oldJson) : {};
       return Object.keys(newVal || {}).filter(a => JSON.stringify(newVal[a]) !== JSON.stringify(old[a])).map(a =>
@@ -4436,6 +4544,8 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         if (o.type !== n.type) diffs.push(`النوع: ${o.type} ← ${n.type}`);
         if (o.account !== n.account) diffs.push(`الحساب: ${o.account} ← ${n.account}`);
         if (o.gDate !== n.gDate || o.hDate !== n.hDate) diffs.push(`التاريخ: ${o.hDate || o.gDate} ← ${n.hDate || n.gDate}`);
+        const oa = (o.att || []).length, na = (n.att || []).length;
+        if (JSON.stringify(o.att || []) !== JSON.stringify(n.att || [])) diffs.push(na > oa ? "إرفاق فاتورة" : na < oa ? "حذف فاتورة" : "تحديث المرفقات");
         out.push(mk(`تعديل حركة (${n._m}): ${n.desc || ""} — ${diffs.join("، ") || "تفاصيل أخرى"}`));
       });
       return out;
@@ -4603,6 +4713,288 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     } catch (e) {
       alert("تعذر إنشاء السنة الجديدة: " + (e && e.message ? e.message : e));
     } finally { if (btn) btn.disabled = false; }
+  }
+
+
+  // =====================================================================
+  // Name matching, "حالة مساهمتي", non-contributors list, invoices
+  // =====================================================================
+  let nonContrib = { people: [] };
+  function normAr(t) {
+    return String(t || "").replace(/[ً-ْـ]/g, "").replace(/[إأآٱ]/g, "ا").replace(/ة/g, "ه").replace(/ى/g, "ي")
+      .replace(/عبد\s+ال/g, "عبدال").replace(/[^؀-ۿ\s]/g, " ").replace(/\s+/g, " ").trim();
+  }
+  function nameTokens(t) { return normAr(t).split(" ").filter(w => w && w !== "بن" && w !== "بنت" && w !== "ابن"); }
+  function shortName(t) { return String(t || "").replace(/\s+/g, " ").trim().split(" ").filter(w => w && !["بن","بنت","ابن"].includes(w)).slice(0, 4).join(" "); }
+  function nameId(t) { return nameTokens(t).slice(0, 4).join(" "); }
+  function nameKey(t, n) { const k = nameTokens(t); return k.length >= n ? k.slice(0, n).join(" ") : null; }
+  function tokensStartWith(full, part) { if (part.length > full.length) return false; for (let i = 0; i < part.length; i++) if (full[i] !== part[i]) return false; return true; }
+
+  // Everyone recorded as contributor in a year: {name, branch, sub, amount, gender}
+  function yearContributors(year) {
+    const src = portalYearSource(year);
+    const c = src && src.contribData;
+    const out = [];
+    if (!c) return out;
+    (c.menBranches || []).forEach(b => (b.subFamilies || []).forEach(f => (f.members || []).forEach(m => {
+      const nm = typeof m === "string" ? m : (m && m.name) || "";
+      if (nm) out.push({ name: nm, branch: b.name, sub: f.title, gender: "m" });
+    })));
+    (c.womenList || []).forEach(w => { if (w && w.name) out.push({ name: w.name, branch: w.branch, amount: Number(w.contribution || 0) + Number(w.support || 0), gender: "f" }); });
+    return out;
+  }
+
+  // ---- حالة مساهمتي ----
+  function searchMyStatus() {
+    const box = document.getElementById("myStatusResult");
+    const q = nameTokens((document.getElementById("myStatusInput") || {}).value);
+    if (!box) return;
+    if (q.length < 2) { box.innerHTML = '<div class="ms-line" style="color:#B42318;">اكتب اسمك واسم أبيك على الأقل (مثال: محمد عبدالله إبراهيم).</div>'; return; }
+    const years = PORTAL_YEARS.slice().sort((a, b) => Number(b) - Number(a)).filter(yearReady);
+    const persons = new Map();
+    const touch = (name, branch) => { const key = nameId(name); if (!persons.has(key)) persons.set(key, { name, branch, years: {} }); return persons.get(key); };
+    years.forEach(y => yearContributors(y).forEach(p => {
+      if (tokensStartWith(nameTokens(p.name), q)) touch(p.name, p.branch).years[y] = { ok: true, amount: p.amount };
+    }));
+    ((nonContrib && nonContrib.people) || []).forEach(p => {
+      if (!tokensStartWith(nameTokens(p.name), q)) return;
+      const rec = touch(p.name, p.branch);
+      Object.keys(p.years || {}).forEach(y => { if (!rec.years[y]) rec.years[y] = { ok: p.years[y] === false, pending: p.years[y] === true, exempt: p.exempt && p.exempt !== "غير معفي" ? p.exempt : "" }; });
+    });
+    if (!persons.size) {
+      box.innerHTML = `<div class="ms-person"><div class="ms-line">لم نجد هذا الاسم في سجلات المساهمين. تأكد من كتابة الاسم كما هو مسجّل (مثال: محمد عبدالله إبراهيم)، أو تواصل مع أمين صندوق الأسرة.</div></div>`;
+      return;
+    }
+    const list = [...persons.values()].slice(0, 6);
+    box.innerHTML = list.map(p => {
+      const lines = years.map(y => {
+        const r = p.years[y];
+        if (r && r.ok) return `<div class="ms-line" style="color:#1E7B45;">✅ ${y}هـ: مساهمتك مسجّلة${r.amount ? " (" + fmtNum(r.amount) + " ر.س)" : ""} — جزاك الله خيراً</div>`;
+        if (r && r.exempt) return `<div class="ms-line" style="color:#5C6B5E;">ℹ️ ${y}هـ: ${escHtml(r.exempt)}</div>`;
+        if (r && r.pending) return `<div class="ms-line" style="color:#B42318;">⏳ ${y}هـ: لم تُسجَّل مساهمتك بعد</div>`;
+        return `<div class="ms-line" style="color:#5C6B5E;">— ${y}هـ: لا يوجد تسجيل لهذه السنة</div>`;
+      }).join("");
+      return `<div class="ms-person"><div class="nm">👤 ${escHtml(shortName(p.name))} <span style="color:var(--muted); font-weight:700; font-size:0.8rem;">— ${escHtml(p.branch || "")}</span></div>${lines}</div>`;
+    }).join("") + (persons.size > 6 ? `<div class="ms-line" style="color:var(--muted);">يوجد ${persons.size - 6} نتيجة أخرى — اكتب اسماً أطول للتحديد.</div>` : "") +
+      `<div class="ms-line" style="color:var(--muted); font-weight:600;">إذا كانت المعلومة غير صحيحة فتواصل مع أمين صندوق الأسرة.</div>`;
+  }
+
+  // ---- قائمة غير المساهمين (للمدير) ----
+  const NC_DEFAULT_TEMPLATE = "السلام عليكم ورحمة الله وبركاته\\n\\nتذكير كريم من مجلس أسرة الشعيبي بالأحساء بالمساهمة السنوية لعام {السنة}هـ.\\nالإخوة الكرام من فرع {الفرع} ({العدد}):\\n{الأسماء}\\n\\nشاكرين لكم تعاونكم ودعمكم لمسيرة الأسرة، وجزاكم الله خيراً.";
+  function ncYears() {
+    const ys = new Set([activeYear]);
+    ((nonContrib && nonContrib.people) || []).forEach(p => Object.keys(p.years || {}).forEach(y => ys.add(y)));
+    return [...ys].sort((a, b) => Number(b) - Number(a));
+  }
+  function ncContribKeys(year) {
+    const keys = new Set();
+    yearContributors(year).forEach(p => { const k4 = nameKey(p.name, 4); if (k4) keys.add(k4); });
+    return keys;
+  }
+  function ncRows() {
+    const branch = (document.getElementById("ncBranch") || {}).value || "";
+    const year = (document.getElementById("ncYear") || {}).value || activeYear;
+    const show = (document.getElementById("ncShow") || {}).value || "unpaid";
+    const withExempt = (document.getElementById("ncExempt") || {}).checked;
+    const q = nameTokens((document.getElementById("ncSearch") || {}).value || "");
+    const people = (nonContrib && nonContrib.people) || [];
+    const matched = ncContribKeys(year);
+    return people.map((p, i) => ({ p, i, st: (p.years || {})[year], exempt: p.exempt && p.exempt !== "غير معفي", inContrib: matched.has(nameKey(p.name, 4)) }))
+      .filter(r => r.st !== undefined)
+      .filter(r => !branch || r.p.branch === branch)
+      .filter(r => withExempt || !r.exempt)
+      .filter(r => show === "all" || (show === "unpaid" ? r.st === true : r.st === false))
+      .filter(r => !q.length || q.every(w => nameTokens(r.p.name).includes(w)));
+  }
+  function renderNonContrib() {
+    const body = document.getElementById("ncBody");
+    if (!body || !isAdmin) return;
+    const people = (nonContrib && nonContrib.people) || [];
+    const bSel = document.getElementById("ncBranch"), ySel = document.getElementById("ncYear");
+    const branches = [...new Set(people.map(p => p.branch))].sort();
+    const curB = bSel.value, curY = ySel.value;
+    bSel.innerHTML = '<option value="">كل الفروع</option>' + branches.map(b => `<option value="${escHtml(b)}">${escHtml(b)}</option>`).join("");
+    if (branches.includes(curB)) bSel.value = curB;
+    const ys = ncYears();
+    ySel.innerHTML = ys.map(y => `<option value="${y}">${y}هـ</option>`).join("");
+    ySel.value = ys.includes(curY) ? curY : (ys.includes(activeYear) ? activeYear : ys[0]);
+    const tpl = document.getElementById("ncTemplate");
+    if (tpl && document.activeElement !== tpl) tpl.value = (nonContrib && nonContrib.template) || NC_DEFAULT_TEMPLATE.replace(/\\n/g, "\n");
+    const info = document.getElementById("ncInfo");
+    if (info) info.innerHTML = `القائمة تظهر للمدير فقط. المصدر: <strong><bdi>${escHtml(nonContrib.source || "—")}</bdi></strong>${nonContrib.updated ? " — آخر تحديث " + escHtml(nonContrib.updated) : ""}. عند سداد أي شخص اضغط «✓ تم السداد». الأسماء التي تظهر بجانبها «مسجّل ضمن المساهمين» وُجد اسمها في قائمة المساهمين لهذه السنة ويمكن تأكيد سدادها.`;
+    const y = ySel.value, rows = ncRows();
+    const all = people.filter(p => (p.years || {})[y] !== undefined && !(p.exempt && p.exempt !== "غير معفي"));
+    const unpaid = all.filter(p => p.years[y] === true).length, paid = all.filter(p => p.years[y] === false).length;
+    const matched = ncContribKeys(y);
+    const likely = people.filter(p => (p.years || {})[y] === true && matched.has(nameKey(p.name, 4))).length;
+    document.getElementById("ncStats").innerHTML = `<span class="nc-chip nc-unpaid">غير مساهم: ${unpaid}</span><span class="nc-chip nc-paid">سدّد بعد التذكير: ${paid}</span>` +
+      (likely ? `<span class="nc-chip nc-match">مسجّل ضمن المساهمين ويحتاج تأكيد: ${likely}</span>` : "") + `<span class="nc-chip nc-exempt">المعروض: ${rows.length}</span>`;
+    if (!rows.length) { body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted);">${people.length ? "لا توجد أسماء بهذه التصفية" : "لا توجد قائمة بعد — ارفع ملف غير المساهمين"}</td></tr>`; return; }
+    body.innerHTML = rows.map((r, n) => {
+      const status = r.st ? `<span class="nc-chip nc-unpaid">غير مساهم</span>` : `<span class="nc-chip nc-paid">✓ سدّد</span>`;
+      const hint = r.st && r.inContrib ? ` <span class="nc-chip nc-match">مسجّل ضمن المساهمين</span>` : "";
+      const act = r.st ? `<button class="btn-action btn-outline" style="padding:3px 9px; font-size:0.78rem;" onclick="ncSetPaid(${r.i}, '${y}', true)" type="button">✓ تم السداد</button>`
+        : `<button class="btn-action btn-outline" style="padding:3px 9px; font-size:0.78rem;" onclick="ncSetPaid(${r.i}, '${y}', false)" type="button">↩ تراجع</button>`;
+      return `<tr><td>${n + 1}</td><td style="white-space:nowrap;">${escHtml(r.p.branch)}</td><td style="text-align:right;">${escHtml(r.p.name)}</td><td>${r.exempt ? `<span class="nc-chip nc-exempt">${escHtml(r.p.exempt)}</span>` : "—"}</td><td>${status}${hint}</td><td style="white-space:nowrap;">${act}</td></tr>`;
+    }).join("");
+  }
+  function ncSave() { portalDirty.add("noncontrib"); clearTimeout(portalFlushTimer); portalFlushTimer = setTimeout(portalFlush, 400); }
+  function ncSetPaid(i, y, paid) {
+    const p = nonContrib.people[i];
+    if (!p) return;
+    nonContrib = portalClone(nonContrib);
+    nonContrib.people[i].years = Object.assign({}, nonContrib.people[i].years, { [y]: !paid });
+    ncSave(); renderNonContrib();
+  }
+  let ncTplTimer = null;
+  function ncTemplateChanged() {
+    clearTimeout(ncTplTimer);
+    ncTplTimer = setTimeout(() => { nonContrib = Object.assign({}, nonContrib, { template: document.getElementById("ncTemplate").value }); ncSave(); }, 1200);
+  }
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; }
+    catch (e) { const ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand("copy"); } catch (x) {} ta.remove(); return ok; }
+  }
+  async function copyReminder(namesOnly) {
+    const y = (document.getElementById("ncYear") || {}).value || activeYear;
+    const branch = (document.getElementById("ncBranch") || {}).value || "";
+    const rows = ((nonContrib && nonContrib.people) || []).filter(p => (p.years || {})[y] === true && !(p.exempt && p.exempt !== "غير معفي") && (!branch || p.branch === branch));
+    const msg = document.getElementById("ncCopyMsg");
+    if (!rows.length) { if (msg) { msg.style.color = "#B42318"; msg.textContent = "لا توجد أسماء لنسخها"; } return; }
+    const names = rows.map((p, i) => `${i + 1}. ${shortName(p.name)}`).join("\n");
+    const tpl = (document.getElementById("ncTemplate") || {}).value || NC_DEFAULT_TEMPLATE.replace(/\\n/g, "\n");
+    const text = namesOnly ? names : tpl.replace(/\{الفرع\}/g, branch || "كل الفروع").replace(/\{السنة\}/g, y).replace(/\{العدد\}/g, rows.length).replace(/\{الأسماء\}/g, names);
+    const ok = await copyText(text);
+    if (msg) { msg.style.color = ok ? "var(--rev-green)" : "#B42318"; msg.textContent = ok ? `✅ تم النسخ (${rows.length} اسم) — الصقها في واتساب` : "تعذر النسخ"; setTimeout(() => { msg.textContent = ""; }, 5000); }
+  }
+  function importNonContrib(input) {
+    const f = input.files && input.files[0]; input.value = "";
+    if (!f) return;
+    loadSheetJS(() => {
+      const r = new FileReader();
+      r.onload = ev => {
+        try {
+          const wb = XLSX.read(ev.target.result, { type: "array" });
+          const people = [];
+          wb.SheetNames.forEach(sn => {
+            const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, defval: "" });
+            const hi = rows.findIndex(row => row.some(c => String(c).trim() === "الاسم"));
+            if (hi < 0) return;
+            const hdr = rows[hi].map(c => String(c).trim());
+            const cName = hdr.indexOf("الاسم"), cBranch = hdr.indexOf("الفرع"), cEx = hdr.indexOf("الاعفاء") >= 0 ? hdr.indexOf("الاعفاء") : hdr.indexOf("الإعفاء");
+            const yCols = hdr.map((h, i) => /^\d{4}$/.test(h) ? i : -1).filter(i => i >= 0);
+            rows.slice(hi + 1).forEach(row => {
+              const name = String(row[cName] || "").replace(/\s+/g, " ").trim();
+              if (!name) return;
+              const years = {};
+              yCols.forEach(i => { const v = String(row[i] || "").trim(); if (v) years[hdr[i]] = v.includes("غير"); });
+              people.push({ branch: String((cBranch >= 0 && row[cBranch]) || sn).trim(), name, exempt: cEx >= 0 ? String(row[cEx] || "").trim() : "", years });
+            });
+          });
+          if (!people.length) { alert("لم أجد أسماء في الملف. يجب أن يحتوي على عمود «الاسم» وأعمدة السنوات مثل 1448."); return; }
+          if (!confirm(`سيتم استبدال قائمة غير المساهمين بـ ${people.length} اسماً من الملف:\n${f.name}\n\nهل تريد المتابعة؟`)) return;
+          nonContrib = { source: f.name, updated: new Date().toISOString().slice(0, 10), template: nonContrib.template, people };
+          ncSave(); renderNonContrib();
+        } catch (e) { alert("تعذر قراءة الملف: " + e.message); }
+      };
+      r.readAsArrayBuffer(f);
+    });
+  }
+
+  // ---- الفواتير والإيصالات ----
+  let attCtx = null;
+  function txByRef(month, id) { return ((txData && txData[month]) || []).find(t => String(t.id) === String(id)); }
+  function openAttModal(month, idx) {
+    const t = (txData[month] || [])[idx];
+    if (!t || !isAdmin) return;
+    attCtx = { month, id: t.id };
+    document.getElementById("attTxInfo").textContent = `${month} — ${t.hDate || t.gDate || ""} — ${t.desc} — ${txAmountText(t)}`;
+    document.getElementById("attPreview").innerHTML = "";
+    document.getElementById("attMsg").textContent = "";
+    renderAttList();
+    document.getElementById("attModal").classList.add("show");
+  }
+  function closeAttModal() { document.getElementById("attModal").classList.remove("show"); document.getElementById("attPreview").innerHTML = ""; attCtx = null; }
+  function renderAttList() {
+    const t = attCtx && txByRef(attCtx.month, attCtx.id);
+    const box = document.getElementById("attList");
+    const list = (t && t.att) || [];
+    box.innerHTML = list.length ? list.map((a, i) => `<div class="att-item"><span>${/pdf/.test(a.mime) ? "📄" : "🖼️"}</span><span class="nm">${escHtml(a.name)}</span><span style="font-size:0.78rem; color:var(--muted);">${(Number(a.size || 0) / 1024).toFixed(0)} ك.ب</span>
+      <button class="btn-action btn-outline att-btn" onclick="viewAttachment(${i})" type="button">👁️ عرض</button>
+      <button class="btn-action btn-outline att-btn" onclick="viewAttachment(${i}, true)" type="button">⬇️ تنزيل</button>
+      <button class="btn-action btn-outline att-btn" style="color:var(--exp-red);" onclick="deleteAttachment(${i})" type="button">🗑️</button></div>`).join("")
+      : '<div style="color:var(--muted); font-size:0.86rem;">لا توجد مرفقات لهذه الحركة بعد.</div>';
+  }
+  function fileToBase64(blob) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(blob); }); }
+  async function shrinkImage(file) {
+    if (!/^image\//.test(file.type) || file.size < 700 * 1024) return file;
+    try {
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+      const k = Math.min(1, 1800 / Math.max(img.width, img.height));
+      const c = document.createElement("canvas"); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const blob = await new Promise(res => c.toBlob(res, "image/jpeg", 0.82));
+      return blob ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file;
+    } catch (e) { return file; }
+  }
+  async function uploadInvoice(file, month, txId) {
+    if (!isAdmin || !file) return false;
+    if (!/^image\/|application\/pdf/.test(file.type)) { alert("الملف يجب أن يكون صورة أو PDF."); return false; }
+    const f = await shrinkImage(file);
+    if (f.size > 9 * 1024 * 1024) { alert("حجم الملف أكبر من 9 ميجابايت."); return false; }
+    const t = txByRef(month, txId);
+    try {
+      const out = await bkCall({ action: "upload", name: f.name, mime: f.type, data: await fileToBase64(f), year: activeYear, month, desc: t ? t.desc : "" });
+      const t2 = txByRef(month, txId);
+      if (!t2) return false;
+      t2.att = (t2.att || []).concat([{ id: out.file.id, name: out.file.name, mime: out.file.mime, size: out.file.size, at: new Date().toISOString() }]);
+      portalStore.setItem("shuaibi_tx_1448", "");
+      renderMonthlyLedger();
+      return true;
+    } catch (e) {
+      const m = String(e && e.message);
+      alert(m === "bad" ? "خاصية الفواتير تحتاج تحديث الخادم (السكريبت) أولاً." : "تعذر رفع الفاتورة: " + m);
+      return false;
+    }
+  }
+  async function attUploadFromModal(input) {
+    const file = input.files && input.files[0]; input.value = "";
+    if (!file || !attCtx) return;
+    const msg = document.getElementById("attMsg");
+    msg.style.color = "var(--muted)"; msg.textContent = "⏳ جارٍ رفع الملف...";
+    const ok = await uploadInvoice(file, attCtx.month, attCtx.id);
+    msg.style.color = ok ? "var(--rev-green)" : "#B42318"; msg.textContent = ok ? "✅ تم إرفاق الملف" : "⚠️ لم يتم الرفع";
+    renderAttList();
+  }
+  async function viewAttachment(i, download) {
+    const t = attCtx && txByRef(attCtx.month, attCtx.id);
+    const a = t && (t.att || [])[i];
+    if (!a) return;
+    const prev = document.getElementById("attPreview");
+    prev.innerHTML = '<div style="color:var(--muted);">⏳ جارٍ تحميل الملف...</div>';
+    try {
+      const out = await bkCall({ action: "file", id: a.id });
+      const bytes = Uint8Array.from(atob(out.data), c => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: out.mime || a.mime }));
+      if (download) {
+        const l = document.createElement("a"); l.href = url; l.download = a.name; document.body.appendChild(l); l.click(); l.remove();
+        prev.innerHTML = "";
+      } else {
+        prev.innerHTML = /pdf/.test(out.mime || a.mime) ? `<iframe src="${url}"></iframe>` : `<img alt="فاتورة" src="${url}"/>`;
+      }
+    } catch (e) {
+      prev.innerHTML = `<div style="color:#B42318; font-weight:700;">تعذر فتح الملف: ${escHtml(String(e && e.message))}</div>`;
+    }
+  }
+  async function deleteAttachment(i) {
+    const t = attCtx && txByRef(attCtx.month, attCtx.id);
+    const a = t && (t.att || [])[i];
+    if (!a || !confirm(`حذف المرفق «${a.name}»؟ يُنقل الملف إلى سلة المهملات في Google Drive.`)) return;
+    try { await bkCall({ action: "deleteFile", id: a.id }); } catch (e) { if (String(e && e.message) !== "not found") { alert("تعذر حذف الملف: " + e.message); return; } }
+    t.att = t.att.filter((_, k) => k !== i);
+    portalStore.setItem("shuaibi_tx_1448", "");
+    renderAttList(); renderMonthlyLedger();
+    document.getElementById("attPreview").innerHTML = "";
   }
 
   // ===== Backups (stored by the server in the owner's Google Drive) =====
@@ -4900,4 +5292,19 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   }
 </script>
 
+<div class="modal-bg" id="attModal" onclick="if(event.target===this) closeAttModal()">
+<div class="modal-box">
+<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+<h3 id="attTitle">📎 الفواتير والإيصالات</h3>
+<button class="btn-action btn-outline" onclick="closeAttModal()" type="button">✕ إغلاق</button>
+</div>
+<div id="attTxInfo" style="font-size:0.86rem; color:var(--muted); font-weight:700;"></div>
+<div class="att-list" id="attList"></div>
+<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<label class="btn-action btn-gold" style="cursor:pointer;">➕ إرفاق ملف<input accept="image/*,application/pdf" onchange="attUploadFromModal(this)" style="display:none;" type="file"/></label>
+<span id="attMsg" style="font-size:0.84rem; font-weight:700;"></span>
+</div>
+<div class="att-preview" id="attPreview"></div>
+</div>
+</div>
 </body></html>
