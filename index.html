@@ -204,6 +204,12 @@
     .header-bottom { justify-content: center; }
   }
 
+  .rec-ok { color: #1E7B45; font-weight: 800; }
+  .rec-bad { color: #B42318; font-weight: 800; }
+  .rec-input { width: 100%; min-width: 110px; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; font-family: inherit; font-size: 0.85rem; }
+  .log-year { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #F5EBC8; color: var(--primary-dark); font-size: 0.75rem; font-weight: 800; }
+  .newyear-note { background: #FFFBEA; border: 1px dashed var(--gold); border-radius: 10px; padding: 10px 12px; font-size: 0.84rem; line-height: 1.8; }
+
   /* Update Date Banner */
   .update-banner {
     background: var(--gold-bg); border-bottom: 1px solid #E8D8A0;
@@ -737,8 +743,8 @@
 <div class="header-bottom">
 <div aria-label="اختيار السنة" class="year-switch" role="group">
 <span class="year-switch-label">السنة المالية:</span>
-<button class="yr-btn active" data-y="1448" onclick="switchYear('1448')" type="button">1448هـ</button>
-<button class="yr-btn" data-y="1447" onclick="switchYear('1447')" type="button">1447هـ</button>
+<span id="yearBtns"><button class="yr-btn active" data-y="1448" onclick="switchYear('1448')" type="button">1448هـ</button>
+<button class="yr-btn" data-y="1447" onclick="switchYear('1447')" type="button">1447هـ</button></span>
 </div>
 <div class="header-actions">
 <div class="nav-tabs">
@@ -848,6 +854,42 @@
 <button class="btn-action btn-gold" onclick="switchView('contributors'); setTimeout(() =&gt; document.getElementById('adminContribFormCard')?.scrollIntoView({behavior:'smooth'}), 100);" style="justify-content:center;" type="button">➕ إضافة مساهم / مساهمة</button>
 <button class="btn-action btn-green" onclick="switchView('ledger'); setTimeout(() =&gt; document.getElementById('adminTxFormBox')?.scrollIntoView({behavior:'smooth'}), 100);" style="justify-content:center;" type="button">📝 إضافة إيراد / مصروف</button>
 </div>
+</div>
+<!-- Bank reconciliation -->
+<div class="admin-box" style="grid-column: 1 / -1;">
+<h4>🏦 المطابقة البنكية</h4>
+<p>أدخل رصيد كل حساب كما يظهر في كشف البنك وتاريخ الكشف، وتحسب البوابة الرصيد المسجّل حتى ذلك التاريخ (من كل السنوات) وتُظهر الفرق.</p>
+<div class="table-wrapper" style="overflow:auto;">
+<table class="data-table" style="min-width:720px;">
+<thead><tr><th>الحساب</th><th>رصيد كشف البنك</th><th>تاريخ الكشف</th><th>الرصيد المسجّل في البوابة</th><th>الفرق</th><th>الحالة</th></tr></thead>
+<tbody id="recBody"></tbody>
+</table>
+</div>
+<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:10px;">
+<button class="btn-action btn-gold" onclick="saveBankRec()" type="button">💾 حفظ المطابقة</button>
+<span id="recStatus" style="font-size:0.84rem; font-weight:700; color:var(--muted);"></span>
+</div>
+</div>
+<!-- Change log -->
+<div class="admin-box" style="grid-column: 1 / -1;">
+<h4>📝 سجل التعديلات</h4>
+<p>كل إضافة أو حذف أو تعديل يُحفظ من لوحة المدير يُسجَّل هنا تلقائياً بتاريخه ووقته (آخر 500 عملية).</p>
+<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+<select class="rec-input" id="logYearFilter" onchange="renderChangeLog()" style="max-width:180px;"><option value="">كل السنوات</option></select>
+<input class="rec-input" id="logSearch" oninput="renderChangeLog()" placeholder="بحث في السجل..." style="max-width:260px;" type="search"/>
+</div>
+<div class="table-wrapper" style="max-height:380px; overflow:auto;">
+<table class="data-table" style="min-width:620px;">
+<thead><tr><th style="width:170px;">التاريخ والوقت</th><th style="width:80px;">السنة</th><th style="width:130px;">القسم</th><th>التفاصيل</th></tr></thead>
+<tbody id="logBody"><tr><td colspan="4" style="text-align:center; color:var(--muted);">لا توجد تعديلات مسجّلة بعد</td></tr></tbody>
+</table>
+</div>
+</div>
+<!-- New financial year -->
+<div class="admin-box" style="grid-column: 1 / -1;">
+<h4>📅 بدء سنة مالية جديدة</h4>
+<div class="newyear-note" id="newYearNote"></div>
+<div style="margin-top:10px;"><button class="btn-action btn-gold" id="newYearBtn" onclick="startNewYear()" type="button">➕ بدء السنة الجديدة</button></div>
 </div>
 <!-- Backups -->
 <div class="admin-box" style="grid-column: 1 / -1;">
@@ -1444,6 +1486,8 @@
     return yearStash[year] || null;
   }
   function portalCurrent(key) {
+    if (key === "changelog") return changeLog;
+    if (key === "bankrec") return bankRec;
     const k = parseYearKey(key);
     if (!k) return null;
     const src = portalYearSource(k.year);
@@ -1501,13 +1545,20 @@
       if (portalLastJson[n] !== json) parts[n] = JSON.parse(json);
     });
     if (!Object.keys(parts).length) { portalFlushing = false; return; }
+    let newLog = null;
+    try {
+      const lines = [];
+      Object.keys(parts).forEach(n => { if (n !== "changelog") lines.push(...describeChange(n, portalLastJson[n], parts[n])); });
+      if (lines.length) { newLog = lines.concat(changeLog || []).slice(0, 500); parts.changelog = newLog; }
+    } catch (e) { console.warn("change log failed", e); }
     setSyncBadge("busy", "⏳ جاري نشر التحديث للأعضاء...");
     try {
       await portalPost(parts);
       Object.keys(parts).forEach(n => { portalLastJson[n] = JSON.stringify(parts[n]); });
+      if (newLog) { changeLog = newLog; renderChangeLog(); }
       setSyncBadge("ok", "🟢 تم النشر — التحديث ظاهر الآن لجميع الأعضاء");
     } catch (e) {
-      Object.keys(parts).forEach(n => portalDirty.add(n));
+      Object.keys(parts).forEach(n => { if (n !== "changelog") portalDirty.add(n); });
       const msg = String(e && e.message) === "pin" ? "⚠️ رمز المدير غير مقبول — لم يُحفظ التعديل" : "⚠️ تعذر نشر التحديث، تحقق من الاتصال وسيُعاد المحاولة";
       setSyncBadge("warn", msg);
       if (String(e && e.message) !== "pin") portalFlushTimer = setTimeout(portalFlush, 8000);
@@ -1519,6 +1570,18 @@
   function portalApply(data) {
     if (!data || typeof data !== "object") return;
     let activeChanged = false, activeFinChanged = false;
+    Object.keys(data).forEach(key => {
+      if ((key === "changelog" || key === "bankrec") && data[key] != null) {
+        const json = JSON.stringify(data[key]);
+        if (portalLastJson[key] === json || portalDirty.has(key)) return;
+        portalLastJson[key] = json;
+        if (key === "changelog" && Array.isArray(data[key])) { changeLog = portalClone(data[key]); renderChangeLog(); }
+        if (key === "bankrec" && typeof data[key] === "object") { bankRec = portalClone(data[key]); renderBankRec(); }
+        return;
+      }
+      const kk = parseYearKey(key);
+      if (kk && PORTAL_PARTS.includes(kk.part) && !PORTAL_YEARS.includes(kk.year)) registerYear(kk.year);
+    });
     Object.keys(data).forEach(key => {
       const k = parseYearKey(key);
       if (!k || !PORTAL_YEARS.includes(k.year) || !PORTAL_PARTS.includes(k.part) || data[key] == null) return;
@@ -1545,6 +1608,8 @@
         else if (k.part === "meta") { st.lastUpdatedStr = cleanUpdStr(v.lastUpdatedStr); st.pageUpdated = seedPageUpdated(v); }
       }
     });
+    setTimeout(autoSwitchNewestYear, 0);
+    if (isAdmin) setTimeout(() => { renderBankRec(); renderNewYearNote(); }, 0);
     if (!activeChanged) return;
     try {
       if (activeFinChanged) syncFinDataFromTransactions();
@@ -1657,6 +1722,31 @@
     document.title = "التقرير المالي التنفيذي ولوحة المساهمين — أسرة الشعيبي بالأحساء (" + activeYear + "هـ)";
     const hInp = document.getElementById("txHijriDateInput");
     if (hInp) hInp.placeholder = activeYear + "/05/01";
+  }
+
+  // ===== Years discovered from the server (a new year appears after "بدء سنة مالية جديدة") =====
+  let autoYearDone = false;
+  function registerYear(y) {
+    if (!/^\d{4}$/.test(String(y)) || PORTAL_YEARS.includes(String(y))) return;
+    PORTAL_YEARS.push(String(y));
+    PORTAL_YEARS.sort((a, b) => Number(b) - Number(a));
+    if (!yearStash[y]) yearStash[y] = {};
+    renderYearButtons();
+  }
+  function renderYearButtons() {
+    const box = document.getElementById("yearBtns");
+    if (!box) return;
+    box.innerHTML = PORTAL_YEARS.slice().sort((a, b) => Number(b) - Number(a))
+      .map(y => `<button class="yr-btn${y === activeYear ? " active" : ""}" data-y="${y}" onclick="switchYear('${y}')" type="button">${y}هـ</button>`).join("\n");
+  }
+  function yearReady(y) { const st = y === activeYear ? { finData, txData, contribData } : yearStash[y]; return !!(st && st.finData && st.txData && st.contribData); }
+  function autoSwitchNewestYear() {
+    if (autoYearDone) return;
+    const newest = PORTAL_YEARS.slice().sort((a, b) => Number(b) - Number(a))[0];
+    if (newest === activeYear) { autoYearDone = true; return; }
+    if (!yearReady(newest)) return;
+    autoYearDone = true;
+    switchYear(newest);
   }
 
   function switchYear(year) {
@@ -1984,7 +2074,7 @@
   function setAdminState(flag) {
     isAdmin = !!flag;
     if (!isAdmin) portalAdminPin = "";
-    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); }
+    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); }, 100); }
     const panel = document.getElementById("adminPanel");
     const btn = document.getElementById("adminToggleBtn");
     const badge = document.getElementById("roleBadge");
@@ -4300,6 +4390,221 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 
   /* Export clean HTML for members with Admin tab/panel completely removed */
 
+
+  // =====================================================================
+  // Change log (سجل التعديلات), bank reconciliation, new financial year
+  // =====================================================================
+  let changeLog = [];
+  let bankRec = {};
+  const PART_LABEL = { tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
+  const escHtml = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const money = v => fmtNum(Number(v || 0)) + " ر.س";
+
+  function txAmountText(t) {
+    const r = Number(t.rev || 0), e = Number(t.exp || 0);
+    return r ? "إيراد " + money(r) : e ? "مصروف " + money(e) : "0";
+  }
+  function describeChange(key, oldJson, newVal) {
+    if (key === "meta") return [];
+    const now = new Date().toISOString();
+    if (key === "bankrec") {
+      const old = oldJson ? JSON.parse(oldJson) : {};
+      return Object.keys(newVal || {}).filter(a => JSON.stringify(newVal[a]) !== JSON.stringify(old[a])).map(a =>
+        ({ t: now, y: "", p: "bankrec", d: `رصيد كشف ${a}: ${money(newVal[a].balance)} بتاريخ ${newVal[a].date || "—"}` }));
+    }
+    const k = parseYearKey(key);
+    if (!k || !PORTAL_PARTS.includes(k.part)) return [];
+    const y = k.year, mk = d => ({ t: now, y, p: k.part, d });
+    const old = oldJson ? JSON.parse(oldJson) : null;
+    if (!old) return [mk("إنشاء بيانات " + PART_LABEL[k.part] + " للسنة")];
+    if (k.part === "tx") {
+      const flat = o => { const m = new Map(); Object.keys(o || {}).forEach(mon => (o[mon] || []).forEach((t, i) => m.set(mon + "|" + (t.id != null ? t.id : "i" + i), Object.assign({ _m: mon }, t)))); return m; };
+      const a = flat(old), b = flat(newVal), out = [];
+      const added = [...b.keys()].filter(x => !a.has(x)), removed = [...a.keys()].filter(x => !b.has(x));
+      const changed = [...b.keys()].filter(x => a.has(x) && JSON.stringify(a.get(x)) !== JSON.stringify(b.get(x)));
+      const show = (list, verb, src) => {
+        if (list.length > 8) { out.push(mk(`${verb} ${list.length} حركة`)); return; }
+        list.forEach(x => { const t = src.get(x); out.push(mk(`${verb} حركة (${t._m}): ${t.desc || "بدون بيان"} — ${txAmountText(t)}`)); });
+      };
+      show(added, "إضافة", b); show(removed, "حذف", a);
+      if (changed.length > 8) out.push(mk(`تعديل ${changed.length} حركة`));
+      else changed.forEach(x => {
+        const o = a.get(x), n = b.get(x), diffs = [];
+        if (o.desc !== n.desc) diffs.push(`البيان: «${o.desc}» ← «${n.desc}»`);
+        if (Number(o.rev || 0) !== Number(n.rev || 0)) diffs.push(`الإيراد: ${money(o.rev)} ← ${money(n.rev)}`);
+        if (Number(o.exp || 0) !== Number(n.exp || 0)) diffs.push(`المصروف: ${money(o.exp)} ← ${money(n.exp)}`);
+        if (o.type !== n.type) diffs.push(`النوع: ${o.type} ← ${n.type}`);
+        if (o.account !== n.account) diffs.push(`الحساب: ${o.account} ← ${n.account}`);
+        if (o.gDate !== n.gDate || o.hDate !== n.hDate) diffs.push(`التاريخ: ${o.hDate || o.gDate} ← ${n.hDate || n.gDate}`);
+        out.push(mk(`تعديل حركة (${n._m}): ${n.desc || ""} — ${diffs.join("، ") || "تفاصيل أخرى"}`));
+      });
+      return out;
+    }
+    if (k.part === "supporters") {
+      const key2 = s => String(s.id != null ? s.id : s.name);
+      const a = new Map((old || []).map(s => [key2(s), s])), b = new Map((newVal || []).map(s => [key2(s), s])), out = [];
+      [...b.keys()].filter(x => !a.has(x)).forEach(x => out.push(mk(`إضافة داعم: ${b.get(x).name} — ${money(b.get(x).amount)}`)));
+      [...a.keys()].filter(x => !b.has(x)).forEach(x => out.push(mk(`حذف داعم: ${a.get(x).name} — ${money(a.get(x).amount)}`)));
+      [...b.keys()].filter(x => a.has(x) && JSON.stringify(a.get(x)) !== JSON.stringify(b.get(x))).forEach(x =>
+        out.push(mk(`تعديل داعم: ${b.get(x).name} — ${money(a.get(x).amount)} ← ${money(b.get(x).amount)}`)));
+      return out.length > 8 ? [mk(`تحديث قائمة الداعمين (${out.length} تغيير)`)] : out;
+    }
+    if (k.part === "contrib") {
+      const ms = o => (o && o.menSummary) || {}, wl = o => ((o && o.womenList) || []).length;
+      return [mk(`تحديث قائمة المساهمين — الرجال المساهمون: ${ms(old).contributors || 0} ← ${ms(newVal).contributors || 0}، النساء: ${wl(old)} ← ${wl(newVal)}`)];
+    }
+    if (k.part === "fin") {
+      const n1 = (old.accounts || []).map(a => a.name).join("|"), n2 = ((newVal || {}).accounts || []).map(a => a.name).join("|");
+      return n1 !== n2 ? [mk("تحديث أسماء الحسابات البنكية")] : [];
+    }
+    return [];
+  }
+
+  function logStamp(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return "—";
+    return `${d.getDate()} ${AR_MONTHS_G[d.getMonth()]} ${d.getFullYear()} — ${fmtClockTime(d)}`;
+  }
+  function renderChangeLog() {
+    const body = document.getElementById("logBody");
+    if (!body) return;
+    const sel = document.getElementById("logYearFilter");
+    if (sel) {
+      const years = [...new Set((changeLog || []).map(l => l.y).filter(Boolean))].sort().reverse();
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">كل السنوات</option>' + years.map(y => `<option value="${y}">${y}هـ</option>`).join("");
+      if (years.includes(cur)) sel.value = cur;
+    }
+    const fy = sel ? sel.value : "", q = ((document.getElementById("logSearch") || {}).value || "").trim();
+    const rows = (changeLog || []).filter(l => (!fy || l.y === fy) && (!q || String(l.d).includes(q)));
+    if (!rows.length) { body.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--muted);">لا توجد تعديلات مسجّلة بعد</td></tr>'; return; }
+    body.innerHTML = rows.slice(0, 300).map(l => `<tr><td style="white-space:nowrap;">${logStamp(l.t)}</td><td>${l.y ? `<span class="log-year">${escHtml(l.y)}هـ</span>` : "—"}</td><td>${escHtml(PART_LABEL[l.p] || l.p || "")}</td><td>${escHtml(l.d)}</td></tr>`).join("");
+  }
+  function logEvent(text, year) {
+    const entry = { t: new Date().toISOString(), y: year || "", p: "system", d: text };
+    changeLog = [entry].concat(changeLog || []).slice(0, 500);
+    portalDirty.add("changelog"); clearTimeout(portalFlushTimer); portalFlushTimer = setTimeout(portalFlush, 300);
+    renderChangeLog();
+  }
+  PART_LABEL.system = "النظام";
+
+  // ---- Bank reconciliation ----
+  function allAccountNames() {
+    const names = [];
+    const add = n => { if (n && !names.includes(n)) names.push(n); };
+    PORTAL_YEARS.slice().sort().reverse().forEach(y => { const src = portalYearSource(y); ((src && src.finData && src.finData.accounts) || []).forEach(a => add(a.name)); });
+    return names;
+  }
+  function bookBalanceAt(acc, date) {
+    const u = unifiedLedger();
+    let bal = Number(u.carried[acc] || 0);
+    u.adjustments.forEach(a => { if (a.acc === acc && a.g <= date) bal += Number(a.amount || 0); });
+    u.entries.forEach(e => { if (e.acc === acc && e.g <= date) bal += e.rev - e.exp; });
+    return Math.round(bal * 100) / 100;
+  }
+  function renderBankRec() {
+    const body = document.getElementById("recBody");
+    if (!body || !isAdmin) return;
+    const today = new Date().toISOString().slice(0, 10);
+    const focused = document.activeElement && document.activeElement.closest && document.activeElement.closest("#recBody");
+    if (focused) return; // don't redraw while the admin is typing
+    body.innerHTML = allAccountNames().map((n, i) => {
+      const r = bankRec[n] || {};
+      return `<tr data-acc="${escHtml(n)}">
+        <td style="font-weight:800;">${escHtml(n)}</td>
+        <td><input class="rec-input" data-f="balance" inputmode="decimal" oninput="recRowUpdate(${i})" placeholder="0.00" type="text" value="${r.balance != null ? r.balance : ""}"/></td>
+        <td><input class="rec-input" data-f="date" onchange="recRowUpdate(${i})" type="date" value="${r.date || today}"/></td>
+        <td class="rec-book">—</td><td class="rec-diff">—</td><td class="rec-state">—</td></tr>`;
+    }).join("");
+    allAccountNames().forEach((_, i) => recRowUpdate(i));
+  }
+  function recRowUpdate(i) {
+    const tr = document.querySelectorAll("#recBody tr")[i];
+    if (!tr) return;
+    const acc = tr.dataset.acc;
+    const raw = tr.querySelector('[data-f="balance"]').value.replace(/[,\s]/g, "").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+    const date = tr.querySelector('[data-f="date"]').value;
+    const book = date ? bookBalanceAt(acc, date) : null;
+    tr.querySelector(".rec-book").textContent = book == null ? "—" : money(book);
+    if (raw === "" || isNaN(Number(raw)) || book == null) { tr.querySelector(".rec-diff").textContent = "—"; tr.querySelector(".rec-state").textContent = "أدخل رصيد الكشف"; tr.querySelector(".rec-state").className = "rec-state"; return; }
+    const diff = Math.round((Number(raw) - book) * 100) / 100;
+    tr.querySelector(".rec-diff").textContent = (diff > 0 ? "+" : "") + money(diff);
+    const st = tr.querySelector(".rec-state");
+    if (Math.abs(diff) < 0.01) { st.textContent = "✅ مطابق"; st.className = "rec-state rec-ok"; }
+    else { st.textContent = diff > 0 ? "⚠️ البنك أعلى — حركة إيداع غير مسجّلة؟" : "⚠️ البنك أقل — حركة صرف غير مسجّلة؟"; st.className = "rec-state rec-bad"; }
+  }
+  function saveBankRec() {
+    if (!isAdmin) return;
+    const next = Object.assign({}, bankRec);
+    document.querySelectorAll("#recBody tr").forEach(tr => {
+      const raw = tr.querySelector('[data-f="balance"]').value.replace(/[,\s]/g, "").replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d));
+      const date = tr.querySelector('[data-f="date"]').value;
+      if (raw === "" || isNaN(Number(raw)) || !date) return;
+      next[tr.dataset.acc] = { balance: Number(raw), date, book: bookBalanceAt(tr.dataset.acc, date), savedAt: new Date().toISOString() };
+    });
+    bankRec = next;
+    portalDirty.add("bankrec"); clearTimeout(portalFlushTimer); portalFlushTimer = setTimeout(portalFlush, 200);
+    const el = document.getElementById("recStatus");
+    if (el) el.textContent = "✅ تم حفظ أرصدة الكشوف — ستبقى محفوظة للمطابقة القادمة";
+  }
+
+  // ---- New financial year ----
+  function newestYear() { return PORTAL_YEARS.slice().sort((a, b) => Number(b) - Number(a))[0]; }
+  function renderNewYearNote() {
+    const el = document.getElementById("newYearNote");
+    if (!el) return;
+    const cur = newestYear(), ny = String(Number(cur) + 1);
+    const first = hijriYearMap(ny).first;
+    el.innerHTML = `آخر سنة في البوابة: <strong>${cur}هـ</strong>. عند الضغط على الزر تُنشأ السنة <strong>${ny}هـ</strong>` +
+      (first ? ` (تبدأ 1 محرم ${ny}هـ الموافق ${first})` : "") +
+      `، وتُرحَّل الأرصدة الختامية لكل حساب كأرصدة افتتاحية في شهر محرم، وتُنقل أسماء الفروع وعدد الملزمين إلى قائمة المساهمين مع تصفير المساهمات، وتبدأ قائمة الداعمين فارغة. تبقى السنوات السابقة كما هي ويمكنك التنقل بينها.`;
+  }
+  async function startNewYear() {
+    if (!isAdmin) return;
+    const cur = newestYear(), ny = String(Number(cur) + 1);
+    if (PORTAL_YEARS.includes(ny)) { alert("السنة " + ny + "هـ موجودة مسبقاً."); return; }
+    const curSrc = portalYearSource(cur);
+    if (!curSrc || !curSrc.finData || !curSrc.txData) { alert("تعذر قراءة بيانات السنة " + cur + "هـ."); return; }
+    const names = allAccountNames();
+    const balances = names.map(n => ({ n, b: bookBalanceAt(n, "9999-12-31") }));
+    const total = balances.reduce((s, x) => s + x.b, 0);
+    if (!confirm(`بدء السنة المالية ${ny}هـ؟\n\nالأرصدة الافتتاحية التي ستُرحَّل:\n` + balances.map(x => `• ${x.n}: ${fmtNum(x.b)} ر.س`).join("\n") + `\nالإجمالي: ${fmtNum(total)} ر.س\n\nتُحفظ نسخة احتياطية قبل الإنشاء.`)) return;
+    const first = hijriYearMap(ny).first || "";
+    const tx = {}; HIJRI_MONTHS_LIST.forEach(m => { tx[m] = []; });
+    tx[HIJRI_MONTHS_LIST[0]] = balances.map((x, i) => ({ id: i + 1, gDate: first, hDate: `${ny}/01/01`, desc: "الرصيد الافتتاحي لحساب " + x.n, type: "رصيد افتتاحي", rev: x.b > 0 ? Math.round(x.b * 100) / 100 : 0, exp: x.b < 0 ? Math.round(-x.b * 100) / 100 : 0, account: x.n }));
+    const fin = portalClone(curSrc.finData);
+    fin.title = String(fin.title || "").replace(new RegExp(cur, "g"), ny) || `التقرير المالي التنفيذي للمجلس الاداري — لعام ${ny}هـ`;
+    fin.kpis = { totalRevenue: 0, totalExpense: 0, netBalance: 0 };
+    fin.accounts = names.map((n, i) => ({ id: i + 1, name: n, revenue: 0, expense: 0, balance: 0 }));
+    const c0 = curSrc.contribData || {};
+    const contrib = {
+      menSummary: { obligated: (c0.menSummary || {}).obligated || 0, contributors: 0, nonContributors: (c0.menSummary || {}).obligated || 0 },
+      womenSummary: { totalCount: 0 },
+      branchesSummary: (c0.branchesSummary || []).map(b => ({ name: b.name, obligated: b.obligated || 0, contributors: 0, nonContributors: b.obligated || 0 })),
+      menBranches: (c0.menBranches || []).map(b => ({ name: b.name, obligated: b.obligated || 0, contributorsCount: 0, subFamilies: (b.subFamilies || []).map(f => ({ title: f.title, obligated: f.obligated || 0, members: [] })) })),
+      womenList: []
+    };
+    const meta = { lastUpdatedStr: formatGregorianToday(), pageUpdated: {} };
+    const parts = { [yearKey("fin", ny)]: fin, [yearKey("tx", ny)]: tx, [yearKey("supporters", ny)]: [], [yearKey("contrib", ny)]: contrib, [yearKey("meta", ny)]: meta };
+    const btn = document.getElementById("newYearBtn"); if (btn) btn.disabled = true;
+    try {
+      try { await bkCall({ action: "backup" }); } catch (e) {}
+      const entry = { t: new Date().toISOString(), y: ny, p: "system", d: `بدء السنة المالية ${ny}هـ وترحيل الأرصدة الافتتاحية (الإجمالي ${fmtNum(total)} ر.س)` };
+      const newLog = [entry].concat(changeLog || []).slice(0, 500);
+      await portalPost(Object.assign({}, parts, { changelog: newLog }));
+      changeLog = newLog; portalLastJson.changelog = JSON.stringify(newLog);
+      Object.keys(parts).forEach(k => { portalLastJson[k] = JSON.stringify(parts[k]); });
+      yearStash[ny] = { finData: fin, txData: tx, supportersData: [], contribData: contrib, lastUpdatedStr: meta.lastUpdatedStr, pageUpdated: {} };
+      registerYear(ny);
+      autoYearDone = true;
+      switchYear(ny);
+      renderChangeLog(); renderNewYearNote(); renderBankRec();
+      alert(`تم بدء السنة المالية ${ny}هـ بنجاح، وهي ظاهرة الآن لجميع أفراد الأسرة.`);
+    } catch (e) {
+      alert("تعذر إنشاء السنة الجديدة: " + (e && e.message ? e.message : e));
+    } finally { if (btn) btn.disabled = false; }
+  }
+
   // ===== Backups (stored by the server in the owner's Google Drive) =====
   let bkCache = [];
   function bkMsg(t, color) { const el = document.getElementById("bkStatus"); if (el) { el.textContent = t; el.style.color = color || "var(--muted)"; } }
@@ -4354,6 +4659,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       portalApply(out.data || {});
       renderBackupList(out.list);
       bkMsg("✅ تمت الاستعادة بنجاح، وتظهر البيانات المستعادة الآن لجميع أفراد الأسرة", "var(--success, #2E7D32)");
+      logEvent("استعادة نسخة احتياطية بتاريخ " + when);
     } catch (e) { bkMsg("⚠️ تعذرت الاستعادة: " + e.message, "#C62828"); }
   }
   function restoreFromFile(input) {
@@ -4375,6 +4681,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         const rd = await portalRead(portalAdminPin);
         if (rd && rd.data) { portalServerKeys = Object.keys(rd.data); portalApply(rd.data); }
         bkMsg("✅ تمت الاستعادة من الملف بنجاح", "var(--success, #2E7D32)");
+        logEvent("استعادة البيانات من ملف: " + f.name);
         loadBackupList();
       } catch (e) { bkMsg("⚠️ تعذرت الاستعادة: " + e.message, "#C62828"); }
     };
