@@ -270,6 +270,50 @@
   .rcpt-foot{display:flex;justify-content:space-between;margin-top:18px;font-size:13px;font-weight:700}
   @media (max-width: 640px) { .cat-row { grid-template-columns: 1fr; gap:4px; } .rcpt-grid{grid-template-columns:1fr} }
 
+  .kind-seg { display:inline-flex; border:1px solid var(--border); border-radius:10px; overflow:hidden; }
+  .kind-seg button { border:none; background:#FFF; padding:7px 12px; font-family:inherit; font-weight:800; font-size:0.82rem; cursor:pointer; color:var(--primary-dark); }
+  .kind-seg button + button { border-inline-start:1px solid var(--border); }
+  .kind-seg button.on { background:var(--primary); color:var(--gold-light); }
+  .more-row td { text-align:center !important; }
+  .m-only { display:none; }
+  .months-m, .yc-cards { display:none; }
+  .mm-item { border:1px solid var(--border); border-radius:12px; margin-bottom:8px; background:#FFF; overflow:hidden; }
+  .mm-item summary { list-style:none; cursor:pointer; display:grid; grid-template-columns: 1fr auto; gap:4px 10px; padding:10px 12px; }
+  .mm-item summary::-webkit-details-marker { display:none; }
+  .mm-item summary .mm-name { font-weight:900; color:var(--primary-dark); }
+  .mm-item summary .mm-net { font-weight:900; text-align:left; }
+  .mm-item summary .mm-sub { grid-column: 1 / -1; font-size:0.8rem; font-weight:700; color:var(--muted); }
+  .mm-item[open] summary { background:#F4F8F4; border-bottom:1px solid var(--border); }
+  .mm-acc { display:grid; grid-template-columns: 1fr auto auto; gap:8px; padding:7px 12px; font-size:0.82rem; border-bottom:1px dashed #E3E7E3; }
+  .mm-acc:last-child { border-bottom:none; }
+  .mm-total { background:#F7E9B8; }
+  .yc-card { border:1px solid var(--border); border-radius:12px; padding:10px 12px; margin-bottom:8px; background:#FFF; }
+  .yc-card .yc-l { font-weight:900; color:var(--primary-dark); margin-bottom:6px; display:flex; justify-content:space-between; gap:8px; }
+  .yc-card .yc-v { display:flex; justify-content:space-between; font-size:0.86rem; font-weight:700; padding:2px 0; }
+  @media (max-width: 700px) {
+    .mcol-title { cursor:pointer; position:relative; padding-inline-end:28px !important; user-select:none; }
+    .mcol-title::after { content:"▾"; position:absolute; inset-inline-end:4px; top:50%; transform:translateY(-50%); font-size:1.2rem; color:var(--gold); }
+    .mcol.collapsed .mcol-title::after { content:"◂"; }
+    .mcol.collapsed > :not(.mcol-title) { display:none !important; }
+    .mcol.collapsed .mcol-title { margin-bottom:0 !important; border-bottom:none !important; padding-bottom:0 !important; }
+    .charts-grid .chart-box.mcol.collapsed { padding-bottom:14px; }
+    #sec-months .table-wrap, #sec-years .yc-table { display:none; }
+    .months-m, .yc-cards { display:block; }
+    .mcards { border:none; overflow:visible; }
+    .mcards table { min-width:0 !important; }
+    .mcards thead { display:none; }
+    .mcards table, .mcards tbody, .mcards tfoot, .mcards tr { display:block; width:100%; }
+    .mcards tr { border:1px solid var(--border); border-radius:12px; margin-bottom:10px; padding:8px 12px; background:#FFF; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+    .mcards td { display:flex; justify-content:space-between; align-items:center; gap:10px; border:none !important; padding:3px 0 !important; text-align:left !important; background:none !important; }
+    .mcards td[data-label]::before { content:attr(data-label); color:var(--muted); font-weight:700; font-size:0.78rem; text-align:right; }
+    .mcards td.m-hide { display:none; }
+    .m-only { display:inline; }
+    .mcards td.m-desc { display:block; text-align:right !important; font-size:0.95rem; padding-bottom:6px !important; border-bottom:1px dashed #E3E7E3 !important; margin-bottom:4px; }
+    .mcards td.m-actions { justify-content:flex-start; flex-wrap:wrap; padding-top:6px !important; }
+    .mcards tfoot tr { background:#F7E9B8; }
+    .mcards td[colspan] { display:block; text-align:center !important; }
+  }
+
   /* Update Date Banner */
   .update-banner {
     background: var(--gold-bg); border-bottom: 1px solid #E8D8A0;
@@ -1119,7 +1163,7 @@
 <div class="section-title">
 <span>🏦 ملخص أرصدة وحركة الحسابات البنكية لعام <span class="yrTxt">1448</span>هـ</span>
 </div>
-<div class="table-wrap">
+<div class="table-wrap mcards">
 <table>
 <thead>
 <tr>
@@ -1211,6 +1255,7 @@
 <tfoot id="monthsTableFoot"></tfoot>
 </table>
 </div>
+<div class="months-m" id="monthsMobile"></div>
 </div>
 </div>
 <!-- VIEW 1B: STANDALONE MONTHLY REVENUE & EXPENSE LEDGER PAGE -->
@@ -1339,12 +1384,13 @@
 <option value="الاستثمار">الاستثمار</option>
 <option value="مشروع مجلس الأسرة">مشروع مجلس الأسرة</option>
 </select>
-<input id="ledgerSearchInput" oninput="renderMonthlyLedger()" placeholder="🔍 ابحث في البيان أو النوع..." style="min-width:220px;" type="text"/>
+<span class="kind-seg" id="ledgerKindSeg"><button class="on" data-k="ALL" onclick="setLedgerKind('ALL')" type="button">الكل</button><button data-k="rev" onclick="setLedgerKind('rev')" type="button">إيرادات</button><button data-k="exp" onclick="setLedgerKind('exp')" type="button">مصروفات</button></span>
+<input id="ledgerSearchInput" oninput="ledgerShowN = 30; renderMonthlyLedger()" placeholder="🔍 ابحث في البيان أو النوع..." style="min-width:220px;" type="text"/>
 </div>
 <!-- Monthly Ledger Summary Strip -->
 <div id="ledgerMonthSummaryStrip" style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:14px;"></div>
 <!-- Monthly Transactions Table -->
-<div class="table-wrap">
+<div class="table-wrap mcards">
 <table>
 <thead>
 <tr>
@@ -2464,24 +2510,25 @@
       const share = totalBal > 0 ? ((a.balance / totalBal) * 100).toFixed(1) + "%" : "0.0%";
       const balCls = a.balance < 0 ? "bal-neg" : "bal-pos";
       return `<tr>
-        <td>${idx + 1}</td>
-        <td class="text-right" style="font-weight:700;">${a.name}</td>
-        <td class="rev-val">${fmtNum(a.revenue)}</td>
-        <td class="exp-val">${fmtNum(a.expense)}</td>
-        <td><span class="${balCls}">${fmtNum(a.balance)}</span></td>
-        <td>${share}</td>
+        <td class="m-hide">${idx + 1}</td>
+        <td class="text-right m-desc" style="font-weight:700;">${a.name}</td>
+        <td class="rev-val" data-label="الإيراد">${fmtNum(a.revenue)}</td>
+        <td class="exp-val" data-label="المصروف">${fmtNum(a.expense)}</td>
+        <td data-label="الرصيد المتاح"><span class="${balCls}">${fmtNum(a.balance)}</span></td>
+        <td data-label="نسبة الرصيد">${share}</td>
       </tr>`;
     }).join("");
     tfoot.innerHTML = `<tr>
-      <td colspan="2">الإجمالي العام للحسابات</td>
-      <td class="rev-val">${fmtNum(sumRev)}</td>
-      <td class="exp-val">${fmtNum(sumExp)}</td>
-      <td>${fmtNum(sumBal)}</td>
-      <td>100%</td>
+      <td colspan="2" class="m-desc">الإجمالي العام للحسابات</td>
+      <td class="rev-val" data-label="الإيراد">${fmtNum(sumRev)}</td>
+      <td class="exp-val" data-label="المصروف">${fmtNum(sumExp)}</td>
+      <td data-label="الرصيد المتاح"><strong>${fmtNum(sumBal)}</strong></td>
+      <td class="m-hide">100%</td>
     </tr>`;
   }
 
   function renderMonthsTable() {
+    setTimeout(renderMonthsMobile, 0);
     const hideZero = document.getElementById("hideZeroMonthsChk").checked;
     const tbody = document.getElementById("monthsTableBody");
     const tfoot = document.getElementById("monthsTableFoot");
@@ -4269,6 +4316,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 
   function selectLedgerMonth(mName) {
     selectedLedgerMonth = mName;
+    ledgerShowN = 30;
     const sel = document.getElementById("ledgerMonthSelect");
     if (sel) sel.value = mName;
     renderMonthlyLedger();
@@ -4303,6 +4351,8 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 
       const r = Number(tx.rev || 0);
       const e = Number(tx.exp || 0);
+      if (ledgerKind === "rev" && !(r > 0)) return;
+      if (ledgerKind === "exp" && !(e > 0)) return;
       mRev += r;
       mExp += e;
       runningBal += (r - e);
@@ -4323,19 +4373,19 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎 المرفقات (${pubN})</button>`;
       if (isAdmin && tx.rcpt) extra += ` <span class="cat-chip" style="background:#EEF3EE; color:var(--primary-dark); border-color:#C9D6C9;">🧾 ${escHtml(tx.rcpt)}</span>`;
       const adminCell = isAdmin
-        ? `<td style="white-space:nowrap;">${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
+        ? `<td class="m-actions" style="white-space:nowrap;">${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
         : "";
 
       rowsHtml.push(`<tr>
-        <td>${rowsHtml.length + 1}</td>
-        <td style="white-space:nowrap;">${tx.gDate || "—"}</td>
-        <td style="white-space:nowrap;">${tx.hDate || "—"}</td>
-        <td class="text-right" style="font-weight:600;">${tx.desc}${extra}</td>
-        <td><span style="background:#EEF3EE; color:var(--primary-dark); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:700;">${tx.type}</span></td>
-        <td style="font-weight:700; color:var(--primary);">${acc}</td>
-        <td class="rev-val">${r > 0 ? fmtNum(r) : "—"}</td>
-        <td class="exp-val">${e > 0 ? fmtNum(e) : "—"}</td>
-        <td><span class="${balCls}">${fmtNum(runningBal)}</span></td>
+        <td class="m-hide">${rowsHtml.length + 1}</td>
+        <td class="m-hide" style="white-space:nowrap;">${tx.gDate || "—"}</td>
+        <td data-label="التاريخ" style="white-space:nowrap;">${tx.hDate || "—"}${tx.gDate ? `<span class="m-only" style="color:var(--muted); font-size:0.78rem;"> (${tx.gDate.split("-").reverse().join("/")})</span>` : ""}</td>
+        <td class="text-right m-desc" style="font-weight:600;">${tx.desc}${extra}</td>
+        <td data-label="النوع"><span style="background:#EEF3EE; color:var(--primary-dark); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:700;">${tx.type}</span></td>
+        <td data-label="الحساب" style="font-weight:700; color:var(--primary);">${acc}</td>
+        <td class="rev-val${r > 0 ? "" : " m-hide"}" data-label="إيراد">${r > 0 ? fmtNum(r) : "—"}</td>
+        <td class="exp-val${e > 0 ? "" : " m-hide"}" data-label="مصروف">${e > 0 ? fmtNum(e) : "—"}</td>
+        <td data-label="الرصيد التراكمي"><span class="${balCls}">${fmtNum(runningBal)}</span></td>
         ${adminCell}
       </tr>`);
     });
@@ -4365,16 +4415,18 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const tbody = document.getElementById("monthlyLedgerBody");
     const tfoot = document.getElementById("monthlyLedgerFoot");
     const colSpanEmpty = isAdmin ? 10 : 9;
+    const limitN = isMobileView() ? ledgerShowN : Infinity;
+    const moreN = Math.max(0, rowsHtml.length - limitN);
     tbody.innerHTML = rowsHtml.length > 0
-      ? rowsHtml.join("")
+      ? rowsHtml.slice(0, limitN).join("") + (moreN ? `<tr class="more-row"><td colspan="${colSpanEmpty}"><button class="btn-action btn-gold" onclick="ledgerShowN += 30; renderMonthlyLedger()" type="button">⬇️ عرض ${Math.min(30, moreN)} حركة أخرى (المتبقي ${moreN})</button></td></tr>` : "")
       : `<tr><td colspan="${colSpanEmpty}" style="padding:18px; color:var(--muted);">لا توجد عمليات مسجلة في شهر ${selectedLedgerMonth} مطابقة للتصفية الحالية.</td></tr>`;
 
     tfoot.innerHTML = `<tr>
       <td colspan="6">إجمالي شهر ${selectedLedgerMonth} (${rowsHtml.length} عملية)</td>
-      <td class="rev-val">${fmtNum(mRev)}</td>
-      <td class="exp-val">${fmtNum(mExp)}</td>
-      <td>${fmtNum(mRev - mExp)}</td>
-      ${isAdmin ? "<td>—</td>" : ""}
+      <td class="rev-val" data-label="الإيرادات">${fmtNum(mRev)}</td>
+      <td class="exp-val" data-label="المصروفات">${fmtNum(mExp)}</td>
+      <td data-label="الصافي">${fmtNum(mRev - mExp)}</td>
+      ${isAdmin ? '<td class="m-hide">—</td>' : ""}
     </tr>`;
   }
 
@@ -5304,7 +5356,16 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       const good = (b - a) * dir >= 0;
       return `<tr><td class="text-right" style="font-weight:700;">${label}</td>${vals.map((v, i) => `<td>${na(v, i, label) ? '<span style="color:var(--muted);">غير مسجّل</span>' : fmtV(v, kind)}</td>`).join("")}<td style="font-weight:800; color:${ch === "—" ? "var(--muted)" : good ? "#1E7B45" : "#B42318"};">${ch}</td></tr>`;
     }).join("");
-    box.innerHTML = `<div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>
+    const cards = rows.map(([label, f, dir, kind]) => {
+      const vals = ys.map(f), a = vals[vals.length - 2], b = vals[vals.length - 1];
+      let ch = "";
+      if (kind === "pct") ch = `${b - a >= 0 ? "▲" : "▼"} ${Math.abs(b - a).toFixed(1)} نقطة`;
+      else if (a && !na(a, vals.length - 2, label)) { const p = (b - a) / Math.abs(a) * 100; ch = `${p >= 0 ? "▲" : "▼"} ${Math.abs(p).toFixed(1)}%`; }
+      const good = (b - a) * dir >= 0;
+      return `<div class="yc-card"><div class="yc-l"><span>${label}</span>${ch ? `<span style="color:${good ? "#1E7B45" : "#B42318"};">${ch}</span>` : ""}</div>
+        ${vals.map((v, i) => `<div class="yc-v"><span>${ys[i].y}هـ</span><span>${na(v, i, label) ? '<span style="color:var(--muted);">غير مسجّل</span>' : fmtV(v, kind)}</span></div>`).join("")}</div>`;
+    }).join("");
+    box.innerHTML = `<div class="yc-cards">${cards}</div><div class="table-wrap yc-table"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>
       <p style="font-size:0.8rem; color:var(--muted); margin:8px 0 0;">التغير محسوب بين آخر سنتين. الإيرادات والمصروفات لا تشمل الأرصدة الافتتاحية ولا التحويلات بين الحسابات. السنة الحالية لم تكتمل بعد.</p>`;
   }
 
@@ -5638,6 +5699,69 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
   }
   setTimeout(showInstallBar, 1500);
+
+
+  // =====================================================================
+  // Mobile layout: collapsible sections, KPIs first, ledger cards, compact months
+  // =====================================================================
+  let ledgerKind = "ALL", ledgerShowN = 30;
+  function isMobileView() { return window.matchMedia("(max-width: 700px)").matches; }
+  function setLedgerKind(k) {
+    ledgerKind = k; ledgerShowN = 30;
+    document.querySelectorAll("#ledgerKindSeg button").forEach(b => b.classList.toggle("on", b.dataset.k === k));
+    renderMonthlyLedger();
+  }
+  function renderMonthsMobile() {
+    const box = document.getElementById("monthsMobile");
+    if (!box || !finData || !finData.months) return;
+    const hideZero = (document.getElementById("hideZeroMonthsChk") || {}).checked;
+    const accs = [["support", "المساهمات و الدعم"], ["zakat", "الزكاة"], ["sadaqat", "الصدقات"], ["investment", "الاستثمار"], ["riyadBank", "مشروع مجلس الأسرة"]];
+    let tr = 0, te = 0;
+    const items = finData.months.filter(m => !hideZero || m.totalRev || m.totalExp).map(m => {
+      tr += m.totalRev; te += m.totalExp;
+      const net = m.totalRev - m.totalExp;
+      const lines = accs.map(([k, n]) => { const x = m[k] || { rev: 0, exp: 0 }; return (x.rev || x.exp) ? `<div class="mm-acc"><span>${escHtml(n)}</span><span class="rev-val">${fmtNum(x.rev)}</span><span class="exp-val">${fmtNum(x.exp)}</span></div>` : ""; }).join("");
+      return `<details class="mm-item"><summary><span class="mm-name">${m.month}</span><span class="mm-net ${net < 0 ? "bal-neg" : "bal-pos"}">${fmtNum(net)}</span>
+        <span class="mm-sub">إيراد <span class="rev-val">${fmtNum(m.totalRev)}</span> — مصروف <span class="exp-val">${fmtNum(m.totalExp)}</span>${lines ? " — اضغط للتفصيل" : ""}</span></summary>
+        ${lines ? `<div class="mm-acc" style="font-weight:800; color:var(--muted);"><span>الحساب</span><span>إيراد</span><span>مصروف</span></div>${lines}` : '<div class="mm-acc"><span>لا توجد حركة</span></div>'}</details>`;
+    }).join("");
+    box.innerHTML = items + `<div class="mm-item mm-total"><div style="display:grid; grid-template-columns:1fr auto; gap:4px 10px; padding:10px 12px;"><span class="mm-name" style="font-weight:900;">الإجمالي</span><span style="font-weight:900;">${fmtNum(tr - te)}</span>
+      <span style="grid-column:1/-1; font-size:0.8rem; font-weight:700;">إيراد <span class="rev-val">${fmtNum(tr)}</span> — مصروف <span class="exp-val">${fmtNum(te)}</span></span></div></div>`;
+  }
+  const MCOL = [["sec-acc-detail", ".acc-breakdown-title"], ["sec-cats", ".section-title"], ["sec-years", ".section-title"], ["sec-branches", ".section-title"], ["sec-months", ".section-title"]];
+  function initMobileLayout() {
+    const els = MCOL.map(([id, sel]) => { const el = document.getElementById(id); return el && [el, el.querySelector(":scope > " + sel)]; }).filter(Boolean);
+    document.querySelectorAll("#sec-charts > .chart-box").forEach(b => els.push([b, b.querySelector(":scope > h3")]));
+    els.forEach(([el, title]) => {
+      if (!title || el.classList.contains("mcol")) return;
+      el.classList.add("mcol", "collapsed"); title.classList.add("mcol-title");
+      title.addEventListener("click", ev => {
+        if (!isMobileView() || ev.target.closest("input, label, select, button, a")) return;
+        el.classList.toggle("collapsed");
+      });
+    });
+    document.querySelectorAll(".quick-nav a[href^='#']").forEach(a => a.addEventListener("click", () => {
+      const t = document.querySelector(a.getAttribute("href")); if (t) t.classList.remove("collapsed");
+    }));
+    placeKpis();
+    let wasMobile = isMobileView();
+    window.addEventListener("resize", () => { const m = isMobileView(); if (m !== wasMobile) { wasMobile = m; placeKpis(); renderMonthlyLedger(); } });
+  }
+  let kpiHome = null;
+  function placeKpis() {
+    const k = document.getElementById("sec-kpis"), fv = document.getElementById("financeView");
+    if (!k || !fv) return;
+    if (!kpiHome) { kpiHome = document.createComment("kpi-home"); k.parentNode.insertBefore(kpiHome, k); }
+    if (isMobileView()) {
+      const anchor = document.getElementById("installBar") || fv.querySelector(".page-updated");
+      anchor.parentNode.insertBefore(k, anchor.nextSibling);
+      const acc = document.getElementById("sec-accounts"); if (acc) k.parentNode.insertBefore(acc, k.nextSibling);
+    } else {
+      kpiHome.parentNode.insertBefore(k, kpiHome.nextSibling);
+      const acc = document.getElementById("sec-accounts"); if (acc) k.parentNode.insertBefore(acc, k.nextSibling);
+    }
+  }
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initMobileLayout); else setTimeout(initMobileLayout, 0);
 
   // ===== Backups (stored by the server in the owner's Google Drive) =====
   let bkCache = [];
