@@ -1353,6 +1353,10 @@
 <label id="txCatLabel">📂 بند المصروف</label>
 <select id="txCatInput"></select>
 </div>
+<div class="tx-field" id="txFeeBox" style="display:none;">
+<label>💸 رسوم التحويل (إن وجدت)</label>
+<input id="txFeeInput" min="0" placeholder="0.00" step="0.01" type="number"/>
+</div>
 <div class="tx-field" id="txApprBox" style="display:none; grid-column: span 2;">
 <label id="txApprLabel">✍️ اسم عضو المجلس المعتمِد</label>
 <input id="txApproverInput" placeholder="مثال: عبدالله بن ناصر" type="text"/>
@@ -4298,6 +4302,13 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (catVal && !forcedCat(newTx)) { if (kind === "exp") newTx.cat = catVal; else newTx.rcat = catVal; }
     if (kind === "exp" && approver && S().approvalLimit > 0 && amount >= S().approvalLimit) newTx.appr = { by: approver, at: new Date().toISOString().slice(0, 10) };
     if (kind === "exp" && !S().apprFrom) saveSettings({ apprFrom: new Date().toISOString().slice(0, 10) });
+    const feeInp = document.getElementById("txFeeInput");
+    const fee = kind === "exp" ? Math.round(Number((feeInp && feeInp.value) || 0) * 100) / 100 : 0;
+    if (fee > 0) {
+      txData[monthName].push({ id: newTxId + 1, gDate, hDate, desc: "رسوم تحويل — " + desc, type: "رسوم", rev: 0, exp: fee, account: linkedAccount, feeOf: newTxId });
+      newTx.feeId = newTxId + 1;
+    }
+    if (feeInp) feeInp.value = "";
 
     selectedLedgerMonth = monthName;
     syncFinDataFromTransactions();
@@ -4397,6 +4408,8 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       const attN = Array.isArray(tx.att) ? tx.att.length : 0;
       const pubN = Array.isArray(tx.att) ? tx.att.filter(a => a.pub).length : 0;
       const invN = Array.isArray(tx.att) ? tx.att.filter(a => a.kind !== "order").length : 0, ordN = attN - invN;
+      const feeChild = tx.feeId ? (txData[selectedLedgerMonth] || []).find(x => x.id === tx.feeId) : null;
+      const feeBtn = e > 0 && !isFeeTx(tx) && !feeChild ? `<button type="button" class="btn-action btn-outline att-btn" title="إضافة رسوم التحويل لهذا المصروف" onclick="addFeeToTx('${selectedLedgerMonth}', ${origIdx})">💸</button> ` : "";
       const rcptBtn = r > 0 && !isOpening(tx) ? `<button type="button" class="btn-action btn-outline att-btn" title="سند قبض${tx.rcpt ? " " + tx.rcpt : ""}" onclick="openReceipt('${selectedLedgerMonth}', ${origIdx})">🧾</button> ` : "";
       let extra = "";
       if (r > 0 && !isOpening(tx)) {
@@ -4414,7 +4427,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎 المرفقات (${pubN})</button>`;
       if (isAdmin && tx.rcpt) extra += ` <span class="cat-chip" style="background:#EEF3EE; color:var(--primary-dark); border-color:#C9D6C9;">🧾 ${escHtml(tx.rcpt)}</span>`;
       const adminCell = isAdmin
-        ? `<td class="m-actions" style="white-space:nowrap;">${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
+        ? `<td class="m-actions" style="white-space:nowrap;">${feeBtn}${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
         : "";
 
       rowsHtml.push(`<tr>
@@ -5265,8 +5278,8 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // =====================================================================
   // Settings (categories, budgets, approval limit, receipt counter, monthly reports)
   // =====================================================================
-  const DEFAULT_CATS = ["مساعدات الأسر المحتاجة", "الزكاة", "الصدقات", "المناسبات والفعاليات", "مجلس الأسرة (تشغيل وصيانة)", "مشروع مجلس الأسرة", "الهوية والطباعة والتقنية", "سداد سلف", "رسوم ومصروفات إدارية", "النقل بين الحسابات", "أخرى"];
-  const CAT_TRANSFER = "النقل بين الحسابات", CAT_PROJECT = "مشروع مجلس الأسرة";
+  const DEFAULT_CATS = ["مساعدات الأسر المحتاجة", "الزكاة", "الصدقات", "المناسبات والفعاليات", "مجلس الأسرة (تشغيل وصيانة)", "مشروع مجلس الأسرة", "الهوية والطباعة والتقنية", "سداد سلف", "رسوم ومصروفات إدارية", "رسوم التحويل البنكية", "النقل بين الحسابات", "أخرى"];
+  const CAT_TRANSFER = "النقل بين الحسابات", CAT_PROJECT = "مشروع مجلس الأسرة", CAT_FEE = "رسوم التحويل البنكية";
   const DEFAULT_REV_CATS = ["المساهمات السنوية", "الدعم والتبرعات", "الزكاة", "الصدقات", "رسوم الفعاليات والاشتراكات", "مبيعات الكتاب والمشجرة", "إيرادات التطبيق", "المبادرات", "السلف المستلمة", "مشروع مجلس الأسرة", "النقل بين الحسابات", "أخرى"];
   const CAT_RENAME = { "الزكاة المصروفة": "الزكاة", "الصدقات المصروفة": "الصدقات", "تحويلات بين الحسابات": "النقل بين الحسابات" };
   const fixCat = c => CAT_RENAME[c] || c;
@@ -5276,7 +5289,9 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (/تحويل|نقل/.test(x) && /حساب/.test(x)) return true;
     return /(للبدا|للبدء|البدء) في مشروع مجلس الاسره الجديد/.test(x);   // funding the new council project from the contributions account
   }
+  function isFeeTx(t) { return !!t.feeOf || /^رسوم (التحويل|تحويل)/.test(normAr(t.desc || "").replace(/^رسوم التحويل/, "رسوم تحويل")); }
   function forcedCat(t) {
+    if (Number(t.exp) > 0 && isFeeTx(t)) return CAT_FEE;
     if (isTransferTx(t)) return CAT_TRANSFER;
     const a = String(t.account || ""); return a === "الزكاة" ? "الزكاة" : a === "الصدقات" ? "الصدقات" : "";
   }
@@ -5284,7 +5299,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   function S() {
     const s = portalSettings || {};
     return {
-      cats: Array.isArray(s.cats) && s.cats.length ? [...new Set(s.cats.map(fixCat))] : DEFAULT_CATS,
+      cats: Array.isArray(s.cats) && s.cats.length ? [...new Set(s.cats.map(fixCat).concat([CAT_FEE]))] : DEFAULT_CATS,
       revCats: Array.isArray(s.revCats) && s.revCats.length ? [...new Set(s.revCats.map(fixCat))] : DEFAULT_REV_CATS,
       budgets: s.budgets || {},
       approvalLimit: s.approvalLimit != null ? Number(s.approvalLimit) : 5000,
@@ -5530,6 +5545,24 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (Number(t.exp || 0) < s.approvalLimit || catOf(t) === CAT_TRANSFER) return false;
     return String(t.gDate || "") >= s.apprFrom || Number(t.id) > Date.parse(s.apprFrom);
   }
+  function addFeeToTx(month, idx) {
+    const t = (txData[month] || [])[idx];
+    if (!t || !isAdmin || !(Number(t.exp) > 0)) return;
+    const v = prompt(`رسوم التحويل للمصروف:\n${t.desc} — ${fmtNum(t.exp)} ر.س\n\nاكتب مبلغ الرسوم:`);
+    const fee = Math.round(Number(String(v || "").replace(/[^\d.]/g, "")) * 100) / 100;
+    if (!(fee > 0)) return;
+    const inside = fee < Number(t.exp) && confirm(`هل مبلغ الرسوم ${fmtNum(fee)} ر.س داخل ضمن المبلغ المسجل (${fmtNum(t.exp)} ر.س)؟\n\n• «موافق»: يُفصل من المبلغ، فيصبح المصروف ${fmtNum(Number(t.exp) - fee)} والرسوم ${fmtNum(fee)}، ولا يتغير الرصيد.\n• «إلغاء»: تُضاف الرسوم مصروفاً جديداً فوق المبلغ، وينقص الرصيد ${fmtNum(fee)}.`);
+    const list = txData[month], id = Date.now();
+    if (inside) t.exp = Math.round((Number(t.exp) - fee) * 100) / 100;
+    list.splice(idx + 1, 0, { id, gDate: t.gDate, hDate: t.hDate, desc: "رسوم تحويل — " + t.desc, type: "رسوم", rev: 0, exp: fee, account: t.account, feeOf: t.id });
+    t.feeId = id;
+    syncFinDataFromTransactions();
+    lastUpdatedStr = formatGregorianToday();
+    portalStore.setItem("shuaibi_tx_1448", JSON.stringify(txData));
+    portalStore.setItem("shuaibi_fin_1448", JSON.stringify(finData));
+    portalStore.setItem("shuaibi_updated_1448", lastUpdatedStr);
+    renderAll(); renderMonthlyLedger();
+  }
   function approveTx(month, idx) {
     const t = (txData[month] || [])[idx];
     if (!t || !isAdmin) return;
@@ -5544,6 +5577,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const catBox = document.getElementById("txCatBox"), apBox = document.getElementById("txApprBox");
     const forced = forcedCat({ account: mapTypeToAccount((document.getElementById("txTypeInput") || {}).value) });
     if (catBox) catBox.style.display = forced ? "none" : "";
+    const feeBox = document.getElementById("txFeeBox"); if (feeBox) feeBox.style.display = kind === "exp" ? "" : "none";
     const cs = document.getElementById("txCatInput");
     if (cs && cs.dataset.kind !== kind) { cs.dataset.kind = kind; cs.innerHTML = '<option value="">تلقائي حسب البيان</option>' + (kind === "exp" ? catOptions("") : revCatOptions("")); }
     const cl = document.getElementById("txCatLabel"); if (cl) cl.textContent = kind === "exp" ? "📂 بند المصروف" : "📂 بند الإيراد";
