@@ -2,6 +2,14 @@
 <html lang="ar" dir="rtl"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1E3821">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="أسرة الشعيبي">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>التقرير المالي التنفيذي ولوحة المساهمين — أسرة الشعيبي بالأحساء (1448هـ)</title>
 <style>
   :root {
@@ -234,6 +242,33 @@
   .ms-person { background:#FFF; border:1px solid var(--border); border-radius:12px; padding:10px 12px; }
   .ms-person .nm { font-weight:800; color:var(--primary-dark); margin-bottom:6px; }
   .ms-line { font-size:0.88rem; font-weight:700; margin:3px 0; }
+
+  .cat-row { display:grid; grid-template-columns: minmax(150px, 220px) 1fr minmax(170px, auto); gap:10px; align-items:center; padding:6px 0; border-bottom:1px dashed #E3E7E3; }
+  .cat-name { font-weight:800; font-size:0.86rem; color:var(--primary-dark); }
+  .cat-track { position:relative; height:16px; background:#F1F4F1; border-radius:999px; overflow:hidden; }
+  .cat-fill { position:absolute; inset-block:0; inset-inline-start:0; background:linear-gradient(90deg, var(--primary), #4F7F55); border-radius:999px; }
+  .cat-fill.ok { background:linear-gradient(90deg, #1E7B45, #3FA66B); }
+  .cat-fill.near { background:linear-gradient(90deg, #C98A00, #E8B33A); }
+  .cat-fill.over { background:linear-gradient(90deg, #B42318, #E0574C); }
+  .cat-budget-mark { position:absolute; inset-block:0; inset-inline-start:0; border-inline-end:3px solid #1E3821; background:rgba(201,162,39,0.18); border-radius:999px; }
+  .cat-val { font-weight:800; font-size:0.84rem; white-space:nowrap; }
+  .cat-val small { color:var(--muted); font-weight:700; }
+  .cat-bud { display:inline-block; margin-inline-start:6px; padding:1px 8px; border-radius:999px; font-size:0.74rem; background:#EBF9F1; color:#1E7B45; }
+  .cat-bud.near { background:#FFF6E0; color:#8A6A00; } .cat-bud.over { background:#FEF2F2; color:#B42318; }
+  .cat-chip { display:inline-block; margin-top:4px; padding:1px 8px; border-radius:6px; font-size:0.72rem; font-weight:700; background:#FFF8E1; color:#8A6A00; border:1px solid #F0DFA6; }
+  select.cat-chip { font-family:inherit; cursor:pointer; max-width:190px; }
+  .appr-ok { display:inline-block; margin-top:3px; font-size:0.74rem; font-weight:800; color:#1E7B45; }
+  .appr-need { margin-top:3px; padding:2px 8px; font-size:0.74rem; font-weight:800; color:#8A6A00; background:#FFF6E0; border:1px solid #E8C766; border-radius:6px; cursor:pointer; font-family:inherit; }
+  .att-pub-btn { margin-top:3px; padding:2px 8px; font-size:0.74rem; font-weight:800; color:var(--primary-dark); background:#EEF3EE; border:1px solid #C9D6C9; border-radius:6px; cursor:pointer; font-family:inherit; }
+  .install-bar { display:none; align-items:center; gap:10px; flex-wrap:wrap; background:#EEF3EE; border:1px solid #C9D6C9; border-radius:12px; padding:8px 12px; margin-bottom:12px; font-size:0.86rem; font-weight:700; color:var(--primary-dark); }
+  .warn-box { display:none; background:#FFF6E0; border:1px solid #E8C766; color:#6B5200; border-radius:10px; padding:8px 12px; font-weight:800; font-size:0.85rem; margin-bottom:10px; }
+  .rcpt{direction:rtl;font-family:Tahoma,Arial,sans-serif;border:2px solid #1E3821;border-radius:14px;padding:18px;background:#fff;color:#1E3821;max-width:680px;margin:0 auto}
+  .rcpt-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid #C9A227;padding-bottom:10px;margin-bottom:12px}.rcpt-head img{width:70px;height:auto}
+  .rcpt-org{font-weight:800;font-size:15px}.rcpt-title{font-weight:900;font-size:24px;color:#8A6A00}.rcpt-no{margin-inline-start:auto;text-align:center;border:1.5px dashed #C9A227;border-radius:10px;padding:6px 12px;font-size:12px}
+  .rcpt-no b{font-size:16px}.rcpt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rcpt-grid>div{border:1px solid #E3E7E3;border-radius:8px;padding:7px 10px;display:flex;gap:8px;align-items:baseline}
+  .rcpt-grid .wide{grid-column:1/-1}.rcpt-grid span{color:#5C6B5E;font-size:12px;white-space:nowrap}.rcpt-grid b{font-size:14px}.rcpt-amt{font-size:18px!important;color:#1E7B45}
+  .rcpt-foot{display:flex;justify-content:space-between;margin-top:18px;font-size:13px;font-weight:700}
+  @media (max-width: 640px) { .cat-row { grid-template-columns: 1fr; gap:4px; } .rcpt-grid{grid-template-columns:1fr} }
 
   /* Update Date Banner */
   .update-banner {
@@ -880,6 +915,39 @@
 <button class="btn-action btn-green" onclick="switchView('ledger'); setTimeout(() =&gt; document.getElementById('adminTxFormBox')?.scrollIntoView({behavior:'smooth'}), 100);" style="justify-content:center;" type="button">📝 إضافة إيراد / مصروف</button>
 </div>
 </div>
+<!-- Settings: categories, budget, approval -->
+<div class="admin-box" style="grid-column: 1 / -1;">
+<h4>⚙️ بنود المصروفات والموازنة وحد الاعتماد</h4>
+<p>البنود تظهر في نموذج المصروف وفي الرسم البياني. الموازنة لكل بند في السنة <strong id="setBudgetYear"></strong>هـ (اتركها فارغة إن لم تُحدد).</p>
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px;">
+<div>
+<label style="font-weight:800; font-size:0.85rem;">البنود (بند في كل سطر)</label>
+<textarea class="rec-input" id="setCats" rows="11" style="width:100%; resize:vertical;"></textarea>
+<label style="font-weight:800; font-size:0.85rem; display:block; margin-top:8px;">المصروف الذي يحتاج اعتماد عضو ثانٍ (ر.س فأكثر)</label>
+<input class="rec-input" id="setApprLimit" min="0" step="100" type="number" style="max-width:180px;"/>
+<p style="font-size:0.78rem; color:var(--muted); margin:4px 0 0;">يُطبّق على المصروفات الجديدة فقط. اكتب 0 لإيقافه.</p>
+</div>
+<div class="table-wrapper" style="max-height:360px; overflow:auto;">
+<table class="data-table"><thead><tr><th>البند</th><th>المصروف حتى الآن</th><th>الموازنة (ر.س)</th></tr></thead><tbody id="setBudgetBody"></tbody></table>
+</div>
+</div>
+<div style="display:flex; gap:8px; align-items:center; margin-top:10px;">
+<button class="btn-action btn-gold" onclick="saveSettingsBox()" type="button">💾 حفظ البنود والموازنة</button>
+<span id="setMsg" style="font-weight:800; color:var(--rev-green); font-size:0.85rem;"></span>
+</div>
+</div>
+<!-- Monthly reports -->
+<div class="admin-box" style="grid-column: 1 / -1;">
+<h4>📄 التقارير الشهرية</h4>
+<p>يُنشأ تقرير الشهر المنتهي تلقائياً عند أول دخول للمدير بعد بداية الشهر الهجري الجديد، ويُحفظ PDF في مجلد «التقارير الشهرية — بوابة أسرة الشعيبي» في Google Drive. ويمكنك إنشاء تقرير أي شهر يدوياً.</p>
+<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<select class="rec-input" id="repMonth" style="max-width:200px;"></select>
+<button class="btn-action btn-gold" onclick="saveMonthReport(document.getElementById('repMonth').value)" type="button">💾 حفظ PDF في Drive</button>
+<button class="btn-action btn-outline" onclick="previewMonthReport()" type="button">👁️ عرض / طباعة</button>
+<span id="repMsg" style="font-weight:800; font-size:0.85rem;"></span>
+</div>
+<div class="att-list" id="repList"></div>
+</div>
 <!-- Non-contributors -->
 <div class="admin-box" style="grid-column: 1 / -1;">
 <h4>📋 قائمة غير المساهمين</h4>
@@ -976,6 +1044,9 @@
 <!-- VIEW 1: FINANCIAL DASHBOARD -->
 <div id="financeView" style="display: block;">
 <div class="page-updated">🕒 آخر تحديث لهذه الصفحة: <strong id="puFinance"></strong></div>
+<div class="install-bar" id="installBar"><span id="installTxt" style="flex:1;"></span>
+<button class="btn-action btn-gold" id="installBtn" onclick="doInstall()" type="button">📲 تثبيت</button>
+<button class="btn-action btn-outline" onclick="hideInstallBar()" type="button">لاحقاً</button></div>
 <!-- Contributors & Supporters Highlight Cards ABOVE Financial KPIs -->
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-bottom:24px;">
 <!-- Card 1: Contributors Highlight -->
@@ -1012,6 +1083,9 @@
 <a href="#sec-kpis">📌 ملخص المؤشرات المالية</a>
 <a href="#sec-charts">📈 الرسوم البيانية</a>
 <a href="#sec-accounts">🏦 أرصدة الحسابات البنكية</a>
+<a href="#sec-cats">📂 المصروفات حسب البند</a>
+<a href="#sec-years">📊 مقارنة السنوات</a>
+<a href="#sec-branches">👥 مشاركة الفروع</a>
 <a href="#sec-months">🗓️ ملخص حركة الأشهر (<span class="yrTxt">1448</span>هـ)</a>
 <a href="javascript:void(0)" onclick="switchView('ledger')">📝 كشف الإيرادات والمصروفات الشهرية</a>
 </div>
@@ -1055,6 +1129,27 @@
 <h3>📈 مقارنة الإيرادات والمصروفات الشهرية (<span class="yrTxt">1448</span>هـ)</h3>
 <div id="monthsSvgChart"></div>
 </div>
+</div>
+<!-- Expenses by category + budget -->
+<div class="section-card" id="sec-cats">
+<div class="section-title">
+<span>📂 المصروفات حسب البند والموازنة التقديرية — <span class="yrTxt">1448</span>هـ</span>
+<label style="font-size:0.84rem; font-weight:600; color:var(--muted); cursor:pointer;"><input id="catShowProject" onchange="renderCatChart()" type="checkbox"/> إظهار مشروع مجلس الأسرة</label>
+</div>
+<div class="warn-box" id="catBudgetWarn"></div>
+<div id="catChartBody"></div>
+<p id="catChartNote" style="font-size:0.8rem; color:var(--muted); margin:8px 0 0;"></p>
+</div>
+<!-- Years comparison -->
+<div class="section-card" id="sec-years">
+<div class="section-title"><span>📊 مقارنة السنوات المالية</span></div>
+<div id="yearsCompareBody"></div>
+</div>
+<!-- Branch participation -->
+<div class="section-card" id="sec-branches">
+<div class="section-title"><span>👥 نسبة مشاركة الفروع في المساهمة — <span class="yrTxt">1448</span>هـ</span>
+<span style="font-size:0.8rem; color:var(--muted);">المساهمون من الرجال إلى الملزمين في كل فرع</span></div>
+<div id="branchPctBody"></div>
 </div>
 <!-- Bank Accounts Table -->
 <div class="section-card" id="sec-accounts">
@@ -1154,7 +1249,7 @@
 </div>
 <div class="tx-field">
 <label>نوع الحركة</label>
-<select id="txKindInput">
+<select id="txKindInput" onchange="updateTxFormExtras()">
 <option value="rev">إيراد (+)</option>
 <option value="exp">مصروف (-)</option>
 </select>
@@ -1177,7 +1272,7 @@
 </div>
 <div class="tx-field">
 <label>المبلغ (ر.س)</label>
-<input id="txAmountInput" min="0.01" placeholder="0.00" required="" step="0.01" type="number"/>
+<input id="txAmountInput" min="0.01" oninput="updateTxFormExtras()" placeholder="0.00" required="" step="0.01" type="number"/>
 </div>
 <div class="tx-field">
 <label>التاريخ الميلادي</label>
@@ -1190,6 +1285,14 @@
 <div class="tx-field" style="grid-column: 1 / -1;">
 <label>البيان التفصيلي للعملية</label>
 <input id="txDescInput" placeholder="اكتب وصف العملية المالية..." required="" type="text"/>
+</div>
+<div class="tx-field" id="txCatBox" style="display:none;">
+<label>📂 بند المصروف</label>
+<select id="txCatInput"></select>
+</div>
+<div class="tx-field" id="txApprBox" style="display:none; grid-column: span 2;">
+<label id="txApprLabel">✍️ اسم عضو المجلس المعتمِد</label>
+<input id="txApproverInput" placeholder="مثال: عبدالله بن ناصر" type="text"/>
 </div>
 <div class="tx-field" style="grid-column: 1 / -1;">
 <label>📎 إرفاق فاتورة أو إيصال (اختياري — صورة أو PDF)</label>
@@ -1562,6 +1665,7 @@
   function portalCurrent(key) {
     if (key === "changelog") return changeLog;
     if (key === "noncontrib") return nonContrib;
+    if (key === "settings") return portalSettings;
     if (key === "bankrec") return bankRec;
     const k = parseYearKey(key);
     if (!k) return null;
@@ -1646,6 +1750,13 @@
     if (!data || typeof data !== "object") return;
     let activeChanged = false, activeFinChanged = false;
     Object.keys(data).forEach(key => {
+      if (key === "settings" && data[key] != null) {
+        const json = JSON.stringify(data[key]);
+        if (portalLastJson[key] === json || portalDirty.has(key)) return;
+        portalLastJson[key] = json;
+        if (typeof data[key] === "object") { portalSettings = portalClone(data[key]); setTimeout(() => { renderFinanceExtras(); if (isAdmin) renderReportsBox(); }, 0); }
+        return;
+      }
       if (key === "noncontrib" && data[key] != null) {
         const json = JSON.stringify(data[key]);
         if (portalLastJson[key] === json || portalDirty.has(key)) return;
@@ -2156,7 +2267,7 @@
   function setAdminState(flag) {
     isAdmin = !!flag;
     if (!isAdmin) portalAdminPin = "";
-    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); }, 100); }
+    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); setTimeout(autoMonthlyReport, 2500); }, 100); }
     const panel = document.getElementById("adminPanel");
     const btn = document.getElementById("adminToggleBtn");
     const badge = document.getElementById("roleBadge");
@@ -2333,6 +2444,7 @@
     renderBranchesSummary();
     populateBranchFilters();
     renderDirectory();
+    renderFinanceExtras();
   }
 
   function renderAccountsTable(totalBal) {
@@ -4070,6 +4182,12 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const desc = document.getElementById("txDescInput").value.trim();
 
     if (amount <= 0 || !desc) return false;
+    const catVal = kind === "exp" ? ((document.getElementById("txCatInput") || {}).value || "") : "";
+    const approver = ((document.getElementById("txApproverInput") || {}).value || "").trim();
+    if (kind === "exp" && S().approvalLimit > 0 && amount >= S().approvalLimit && !approver) {
+      alert(`هذا المصروف ${fmtNum(amount)} ر.س يحتاج اسم عضو المجلس المعتمِد.`);
+      return false;
+    }
 
     const linkedAccount = mapTypeToAccount(typeVal);
     if (!txData[monthName]) txData[monthName] = [];
@@ -4085,6 +4203,10 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       exp: kind === "exp" ? amount : 0,
       account: linkedAccount
     });
+    const newTx = txData[monthName][txData[monthName].length - 1];
+    if (catVal) newTx.cat = catVal;
+    if (kind === "exp" && approver && S().approvalLimit > 0 && amount >= S().approvalLimit) newTx.appr = { by: approver, at: new Date().toISOString().slice(0, 10) };
+    if (kind === "exp" && !S().apprFrom) saveSettings({ apprFrom: new Date().toISOString().slice(0, 10) });
 
     selectedLedgerMonth = monthName;
     syncFinDataFromTransactions();
@@ -4104,6 +4226,8 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     }
     document.getElementById("txAmountInput").value = "";
     document.getElementById("txDescInput").value = "";
+    const apI = document.getElementById("txApproverInput"); if (apI) apI.value = "";
+    updateTxFormExtras();
     const fb = document.getElementById("txFormFeedback");
     if (fb) {
       fb.textContent = `✅ تمت إضافة العملية في شهر (${monthName}) وربطها بحساب (${linkedAccount}) وتحديث الملخص الرئيسي.`;
@@ -4170,15 +4294,27 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 
       const balCls = runningBal < 0 ? "bal-neg" : "bal-pos";
       const attN = Array.isArray(tx.att) ? tx.att.length : 0;
+      const pubN = Array.isArray(tx.att) ? tx.att.filter(a => a.pub).length : 0;
+      const rcptBtn = r > 0 && !isOpening(tx) ? `<button type="button" class="btn-action btn-outline att-btn" title="سند قبض${tx.rcpt ? " " + tx.rcpt : ""}" onclick="openReceipt('${selectedLedgerMonth}', ${origIdx})">🧾</button> ` : "";
+      let extra = "";
+      if (e > 0) {
+        extra += isAdmin
+          ? `<br/><select class="cat-chip" title="بند المصروف" onchange="setTxCat('${selectedLedgerMonth}', ${origIdx}, this.value)">${catOptions(catOf(tx))}</select>`
+          : `<br/><span class="cat-chip">${escHtml(catOf(tx))}</span>`;
+        if (tx.appr) extra += ` <span class="appr-ok">✔ معتمد من ${escHtml(tx.appr.by)}</span>`;
+        else if (isAdmin && needsApproval(tx)) extra += ` <button type="button" class="appr-need" onclick="approveTx('${selectedLedgerMonth}', ${origIdx})">⏳ بحاجة اعتماد</button>`;
+      }
+      if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎 الفاتورة${pubN > 1 ? " (" + pubN + ")" : ""}</button>`;
+      if (isAdmin && tx.rcpt) extra += ` <span class="cat-chip" style="background:#EEF3EE; color:var(--primary-dark); border-color:#C9D6C9;">🧾 ${escHtml(tx.rcpt)}</span>`;
       const adminCell = isAdmin
-        ? `<td style="white-space:nowrap;"><button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${attN ? " " + attN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
+        ? `<td style="white-space:nowrap;">${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${attN ? " " + attN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
         : "";
 
       rowsHtml.push(`<tr>
         <td>${rowsHtml.length + 1}</td>
         <td style="white-space:nowrap;">${tx.gDate || "—"}</td>
         <td style="white-space:nowrap;">${tx.hDate || "—"}</td>
-        <td class="text-right" style="font-weight:600;">${tx.desc}</td>
+        <td class="text-right" style="font-weight:600;">${tx.desc}${extra}</td>
         <td><span style="background:#EEF3EE; color:var(--primary-dark); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:700;">${tx.type}</span></td>
         <td style="font-weight:700; color:var(--primary);">${acc}</td>
         <td class="rev-val">${r > 0 ? fmtNum(r) : "—"}</td>
@@ -4488,7 +4624,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // =====================================================================
   let changeLog = [];
   let bankRec = {};
-  const PART_LABEL = { noncontrib: "غير المساهمين", tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
+  const PART_LABEL = { settings: "الإعدادات", noncontrib: "غير المساهمين", tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
   const escHtml = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const money = v => fmtNum(Number(v || 0)) + " ر.س";
 
@@ -4513,6 +4649,14 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         Object.keys(yrs).forEach(y => { if (prev[y] !== yrs[y]) out.push({ t: now, y, p: "noncontrib", d: (yrs[y] ? "إعادة إلى غير المساهمين: " : "تسجيل سداد مساهمة: ") + shortName(p.name) + " (" + p.branch + ")" }); });
       });
       if (!out.length && oldJson && JSON.stringify(old.template) !== JSON.stringify((newVal || {}).template)) out.push({ t: now, y: "", p: "noncontrib", d: "تعديل نص رسالة التذكير" });
+      return out;
+    }
+    if (key === "settings") {
+      const o = oldJson ? JSON.parse(oldJson) : {}, n = newVal || {}, out = [];
+      if (JSON.stringify(o.cats || null) !== JSON.stringify(n.cats || null)) out.push({ t: now, y: "", p: "settings", d: "تعديل بنود المصروفات" });
+      Object.keys(n.budgets || {}).forEach(y => { if (JSON.stringify((o.budgets || {})[y]) !== JSON.stringify(n.budgets[y])) out.push({ t: now, y, p: "settings", d: "تعديل الموازنة التقديرية: " + Object.keys(n.budgets[y]).map(c => c + " " + money(n.budgets[y][c])).join("، ") }); });
+      if (o.approvalLimit !== n.approvalLimit && n.approvalLimit != null) out.push({ t: now, y: "", p: "settings", d: `حد اعتماد المصروفات: ${money(n.approvalLimit)}` });
+      (n.reports || []).filter(r => !(o.reports || []).some(x => x.id === r.id)).forEach(r => out.push({ t: now, y: r.year, p: "settings", d: `حفظ التقرير الشهري لشهر ${r.month}${r.auto ? " (تلقائي)" : ""}` }));
       return out;
     }
     if (key === "bankrec") {
@@ -4545,7 +4689,11 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         if (o.account !== n.account) diffs.push(`الحساب: ${o.account} ← ${n.account}`);
         if (o.gDate !== n.gDate || o.hDate !== n.hDate) diffs.push(`التاريخ: ${o.hDate || o.gDate} ← ${n.hDate || n.gDate}`);
         const oa = (o.att || []).length, na = (n.att || []).length;
-        if (JSON.stringify(o.att || []) !== JSON.stringify(n.att || [])) diffs.push(na > oa ? "إرفاق فاتورة" : na < oa ? "حذف فاتورة" : "تحديث المرفقات");
+        if (JSON.stringify(o.att || []) !== JSON.stringify(n.att || [])) diffs.push(na > oa ? "إرفاق فاتورة" : na < oa ? "حذف فاتورة" : (n.att || []).filter(a => a.pub).length > (o.att || []).filter(a => a.pub).length ? "إظهار الفاتورة للأعضاء" : (n.att || []).filter(a => a.pub).length < (o.att || []).filter(a => a.pub).length ? "إخفاء الفاتورة عن الأعضاء" : "تحديث المرفقات");
+        if ((o.cat || "") !== (n.cat || "")) diffs.push(`البند: ${o.cat || catOf(o)} ← ${n.cat}`);
+        if (JSON.stringify(o.appr || null) !== JSON.stringify(n.appr || null) && n.appr) diffs.push(`اعتماد من ${n.appr.by}`);
+        if ((o.rcpt || "") !== (n.rcpt || "") && n.rcpt) diffs.push(`إصدار سند قبض ${n.rcpt}`);
+        if ((o.payer || "") !== (n.payer || "")) diffs.push(`اسم الدافع: ${n.payer || "—"}`);
         out.push(mk(`تعديل حركة (${n._m}): ${n.desc || ""} — ${diffs.join("، ") || "تفاصيل أخرى"}`));
       });
       return out;
@@ -4906,7 +5054,8 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   function txByRef(month, id) { return ((txData && txData[month]) || []).find(t => String(t.id) === String(id)); }
   function openAttModal(month, idx) {
     const t = (txData[month] || [])[idx];
-    if (!t || !isAdmin) return;
+    if (!t || (!isAdmin && !(t.att || []).some(a => a.pub))) return;
+    document.getElementById("attAdminTools").style.display = isAdmin ? "flex" : "none";
     attCtx = { month, id: t.id };
     document.getElementById("attTxInfo").textContent = `${month} — ${t.hDate || t.gDate || ""} — ${t.desc} — ${txAmountText(t)}`;
     document.getElementById("attPreview").innerHTML = "";
@@ -4919,10 +5068,11 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const t = attCtx && txByRef(attCtx.month, attCtx.id);
     const box = document.getElementById("attList");
     const list = (t && t.att) || [];
-    box.innerHTML = list.length ? list.map((a, i) => `<div class="att-item"><span>${/pdf/.test(a.mime) ? "📄" : "🖼️"}</span><span class="nm">${escHtml(a.name)}</span><span style="font-size:0.78rem; color:var(--muted);">${(Number(a.size || 0) / 1024).toFixed(0)} ك.ب</span>
+    box.innerHTML = list.some(a => isAdmin || a.pub) ? list.map((a, i) => (!isAdmin && !a.pub) ? "" : `<div class="att-item"><span>${/pdf/.test(a.mime) ? "📄" : "🖼️"}</span><span class="nm">${escHtml(a.name)}</span><span style="font-size:0.78rem; color:var(--muted);">${(Number(a.size || 0) / 1024).toFixed(0)} ك.ب</span>
       <button class="btn-action btn-outline att-btn" onclick="viewAttachment(${i})" type="button">👁️ عرض</button>
       <button class="btn-action btn-outline att-btn" onclick="viewAttachment(${i}, true)" type="button">⬇️ تنزيل</button>
-      <button class="btn-action btn-outline att-btn" style="color:var(--exp-red);" onclick="deleteAttachment(${i})" type="button">🗑️</button></div>`).join("")
+      ${isAdmin ? `<label style="display:flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:800; cursor:pointer;"><input ${a.pub ? "checked" : ""} onchange="toggleAttPub(${i})" type="checkbox"/> ظاهرة للأعضاء</label>
+      <button class="btn-action btn-outline att-btn" style="color:var(--exp-red);" onclick="deleteAttachment(${i})" type="button">🗑️</button>` : ""}</div>`).join("")
       : '<div style="color:var(--muted); font-size:0.86rem;">لا توجد مرفقات لهذه الحركة بعد.</div>';
   }
   function fileToBase64(blob) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1] || ""); r.onerror = rej; r.readAsDataURL(blob); }); }
@@ -4973,7 +5123,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const prev = document.getElementById("attPreview");
     prev.innerHTML = '<div style="color:var(--muted);">⏳ جارٍ تحميل الملف...</div>';
     try {
-      const out = await bkCall({ action: "file", id: a.id });
+      const out = isAdmin ? await bkCall({ action: "file", id: a.id }) : await memberFileCall(a.id);
       const bytes = Uint8Array.from(atob(out.data), c => c.charCodeAt(0));
       const url = URL.createObjectURL(new Blob([bytes], { type: out.mime || a.mime }));
       if (download) {
@@ -4996,6 +5146,440 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     renderAttList(); renderMonthlyLedger();
     document.getElementById("attPreview").innerHTML = "";
   }
+
+
+  // =====================================================================
+  // Settings (categories, budgets, approval limit, receipt counter, monthly reports)
+  // =====================================================================
+  const DEFAULT_CATS = ["مساعدات الأسر المحتاجة", "الزكاة المصروفة", "الصدقات المصروفة", "المناسبات والفعاليات", "مجلس الأسرة (تشغيل وصيانة)", "مشروع مجلس الأسرة", "الهوية والطباعة والتقنية", "سداد سلف", "رسوم ومصروفات إدارية", "تحويلات بين الحسابات", "أخرى"];
+  const CAT_TRANSFER = "تحويلات بين الحسابات", CAT_PROJECT = "مشروع مجلس الأسرة";
+  let portalSettings = {};
+  function S() {
+    const s = portalSettings || {};
+    return {
+      cats: Array.isArray(s.cats) && s.cats.length ? s.cats : DEFAULT_CATS,
+      budgets: s.budgets || {},
+      approvalLimit: s.approvalLimit != null ? Number(s.approvalLimit) : 5000,
+      apprFrom: s.apprFrom || "",
+      rcptSeq: s.rcptSeq || {},
+      reports: Array.isArray(s.reports) ? s.reports : []
+    };
+  }
+  function saveSettings(patch) {
+    portalSettings = Object.assign({}, portalClone(portalSettings || {}), patch);
+    portalDirty.add("settings"); clearTimeout(portalFlushTimer); portalFlushTimer = setTimeout(portalFlush, 400);
+  }
+  function persistTx() {
+    lastUpdatedStr = formatGregorianToday();
+    portalStore.setItem("shuaibi_tx_1448", "");
+    portalStore.setItem("shuaibi_updated_1448", lastUpdatedStr);
+  }
+
+  // ---- 1. Expense categories ----
+  function guessCat(t) {
+    const d = normAr(t.desc || ""), acc = String(t.account || "");
+    if (/تحويل/.test(d) && /حساب/.test(d)) return CAT_TRANSFER;
+    if (acc.includes("مشروع") || /مشروع مجلس الاسره/.test(d)) return CAT_PROJECT;
+    if (acc === "الزكاة") return "الزكاة المصروفة";
+    if (acc === "الصدقات") return "الصدقات المصروفة";
+    if (/محتاج|مساعده|اعاله|سله غذائيه|تموينات|اثاث لعائله/.test(d)) return "مساعدات الأسر المحتاجة";
+    if (/سلفه/.test(d)) return "سداد سلف";
+    if (/فعاليه|حفل|لقاء|ملتقي|مخيم|اليوم الوطني|التراثي|ضيافه|عرضه|قاعه|ذبايح|زياره|برومو|تمر|شكولاته|باجات|صوتيات|شاشه|ملتوت/.test(d)) return "المناسبات والفعاليات";
+    if (/كهرباء|مياه|تنظيف|نظافه|صيانه|مكيفات|افياش|صك|المجلس|مجلس الاسره|قفل/.test(d)) return "مجلس الأسرة (تشغيل وصيانة)";
+    if (/كتاب|طباعه|تصميم|هويه|موقع|دومين|تطبيق|مشجره|بوست|مصمم|شعار|وثائق|ورق رسمي|بطاقات|كتيب/.test(d)) return "الهوية والطباعة والتقنية";
+    if (/بوابات الدفع|ضريبه|رسوم|توكيل|ملكيه|مساحي/.test(d)) return "رسوم ومصروفات إدارية";
+    return "أخرى";
+  }
+  function catOf(t) { return t.cat || guessCat(t); }
+  function isOpening(t) { return String(t.type || "").includes("افتتاح") || /الرصيد الافتتاحي/.test(t.desc || ""); }
+  function catOptions(sel) { return S().cats.map(c => `<option value="${escHtml(c)}"${c === sel ? " selected" : ""}>${escHtml(c)}</option>`).join(""); }
+  function setTxCat(month, idx, val) {
+    const t = (txData[month] || [])[idx];
+    if (!t || !isAdmin) return;
+    t.cat = val; persistTx(); renderFinanceExtras();
+  }
+  function expensesByCat(tx) {
+    const out = {};
+    Object.keys(tx || {}).forEach(m => (tx[m] || []).forEach(t => {
+      const e = Number(t.exp || 0); if (e <= 0) return;
+      const c = catOf(t); out[c] = (out[c] || 0) + e;
+    }));
+    return out;
+  }
+
+  // ---- 1 + 2. Category chart with budget ----
+  function renderCatChart() {
+    const box = document.getElementById("catChartBody");
+    if (!box) return;
+    const showProj = (document.getElementById("catShowProject") || {}).checked;
+    const by = expensesByCat(txData), bud = (S().budgets || {})[activeYear] || {};
+    const cats = [...new Set(S().cats.concat(Object.keys(by)))].filter(c => c !== CAT_TRANSFER && (showProj || c !== CAT_PROJECT));
+    const rows = cats.map(c => ({ c, a: by[c] || 0, b: Number(bud[c] || 0) })).filter(r => r.a > 0 || r.b > 0).sort((x, y) => y.a - x.a);
+    const total = rows.reduce((s, r) => s + r.a, 0), max = Math.max(1, ...rows.map(r => Math.max(r.a, r.b)));
+    const note = document.getElementById("catChartNote");
+    if (note) {
+      const proj = by[CAT_PROJECT] || 0, trn = by[CAT_TRANSFER] || 0;
+      note.textContent = `إجمالي المصروفات المعروضة: ${fmtNum(total)} ر.س` + (!showProj && proj ? ` — لا يشمل مشروع مجلس الأسرة (${fmtNum(proj)} ر.س)` : "") + (trn ? ` — التحويلات بين الحسابات (${fmtNum(trn)} ر.س) غير محسوبة لأنها ليست صرفاً فعلياً` : "");
+    }
+    if (!rows.length) { box.innerHTML = '<div style="color:var(--muted); padding:10px;">لا توجد مصروفات مسجلة بعد لهذه السنة.</div>'; return; }
+    const warn = [];
+    box.innerHTML = rows.map(r => {
+      const pctTot = total ? (r.a / total * 100).toFixed(1) : "0.0";
+      const used = r.b ? r.a / r.b * 100 : 0;
+      const cls = !r.b ? "" : used > 100 ? " over" : used >= 80 ? " near" : " ok";
+      if (r.b && used > 100) warn.push(`🔴 «${r.c}» تجاوز الموازنة بنسبة ${(used - 100).toFixed(0)}%`);
+      else if (r.b && used >= 80) warn.push(`🟠 «${r.c}» استهلك ${used.toFixed(0)}% من موازنته`);
+      const budTxt = r.b ? `<span class="cat-bud${cls}">${used.toFixed(0)}% من الموازنة (${fmtNum(r.b)})</span>` : "";
+      return `<div class="cat-row"><div class="cat-name">${escHtml(r.c)}</div>
+        <div class="cat-track">${r.b ? `<div class="cat-budget-mark" style="width:${(r.b / max * 100).toFixed(2)}%"></div>` : ""}<div class="cat-fill${cls}" style="width:${Math.max(0.6, r.a / max * 100).toFixed(2)}%"></div></div>
+        <div class="cat-val">${fmtNum(r.a)} <small>(${pctTot}%)</small> ${budTxt}</div></div>`;
+    }).join("");
+    const w = document.getElementById("catBudgetWarn");
+    if (w) { w.style.display = warn.length ? "block" : "none"; w.innerHTML = warn.join("<br/>"); }
+  }
+
+  // ---- 3. Year comparison ----
+  function yearStats(y) {
+    const src = portalYearSource(y);
+    if (!src || !src.finData || !src.txData) return null;
+    let rev = 0, exp = 0, open = 0, bal = 0;
+    Object.keys(src.txData).forEach(m => (src.txData[m] || []).forEach(t => {
+      bal += Number(t.rev || 0) - Number(t.exp || 0);
+      if (isOpening(t)) { open += Number(t.rev || 0); return; }
+      if (catOf(t) === CAT_TRANSFER) return;
+      rev += Number(t.rev || 0); exp += Number(t.exp || 0);
+    }));
+    const c = src.contribData || {}, ms = c.menSummary || {};
+    const women = (c.womenList || []), sup = Array.isArray(src.supportersData) ? src.supportersData : [];
+    return {
+      y, open, rev, exp, bal,
+      menC: Number(ms.contributors || 0), menO: Number(ms.obligated || 0),
+      womenC: women.length, womenAmt: women.reduce((s, w) => s + Number(w.contribution || 0) + Number(w.support || 0), 0),
+      supAmt: sup.reduce((s, x) => s + Number(x.amount || 0), 0), supN: sup.length
+    };
+  }
+  function renderYearsCompare() {
+    const box = document.getElementById("yearsCompareBody");
+    if (!box) return;
+    const ys = PORTAL_YEARS.slice().sort((a, b) => Number(a) - Number(b)).map(yearStats).filter(Boolean);
+    if (ys.length < 2) { box.innerHTML = '<div style="color:var(--muted); padding:10px;">تظهر المقارنة عند توفر بيانات سنتين على الأقل.</div>'; return; }
+    const rows = [
+      ["الرصيد المرحّل من السنة السابقة", s => s.open, 1],
+      ["الإيرادات خلال السنة", s => s.rev, 1],
+      ["المصروفات خلال السنة", s => s.exp, -1],
+      ["الرصيد في نهاية الفترة", s => s.bal, 1],
+      ["عدد المساهمين (الرجال)", s => s.menC, 1, true],
+      ["نسبة الالتزام (الرجال)", s => s.menO ? s.menC / s.menO * 100 : 0, 1, "pct"],
+      ["عدد المساهمات (النساء)", s => s.womenC, 1, true],
+      ["مبلغ مساهمات النساء", s => s.womenAmt, 1],
+      ["إجمالي الدعم", s => s.supAmt, 1]
+    ];
+    const fmtV = (v, kind) => kind === "pct" ? v.toFixed(1) + "%" : kind ? fmtInt(v) : fmtNum(v);
+    const na = (v, i, label) => !v && i < ys.length - 1 && /النساء|الدعم/.test(label);
+    const head = `<tr><th>البند</th>${ys.map(s => `<th>${s.y}هـ</th>`).join("")}<th>التغير</th></tr>`;
+    const body = rows.map(([label, f, dir, kind]) => {
+      const vals = ys.map(f), a = vals[vals.length - 2], b = vals[vals.length - 1];
+      let ch = "—";
+      if (kind === "pct") ch = `${b - a >= 0 ? "▲" : "▼"} ${Math.abs(b - a).toFixed(1)} نقطة`;
+      else if (a && !na(a, vals.length - 2, label)) { const p = (b - a) / Math.abs(a) * 100; ch = `${p >= 0 ? "▲" : "▼"} ${Math.abs(p).toFixed(1)}%`; }
+      const good = (b - a) * dir >= 0;
+      return `<tr><td class="text-right" style="font-weight:700;">${label}</td>${vals.map((v, i) => `<td>${na(v, i, label) ? '<span style="color:var(--muted);">غير مسجّل</span>' : fmtV(v, kind)}</td>`).join("")}<td style="font-weight:800; color:${ch === "—" ? "var(--muted)" : good ? "#1E7B45" : "#B42318"};">${ch}</td></tr>`;
+    }).join("");
+    box.innerHTML = `<div class="table-wrap"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>
+      <p style="font-size:0.8rem; color:var(--muted); margin:8px 0 0;">التغير محسوب بين آخر سنتين. الإيرادات والمصروفات لا تشمل الأرصدة الافتتاحية ولا التحويلات بين الحسابات. السنة الحالية لم تكتمل بعد.</p>`;
+  }
+
+  // ---- 6. Branch participation ----
+  function renderBranchPct() {
+    const box = document.getElementById("branchPctBody");
+    if (!box) return;
+    const cur = (contribData && contribData.branchesSummary) || [];
+    const prevY = String(Number(activeYear) - 1), prevSrc = portalYearSource(prevY);
+    const prev = {}; ((prevSrc && prevSrc.contribData && prevSrc.contribData.branchesSummary) || []).forEach(b => { if (b.obligated) prev[b.name] = b.contributors / b.obligated * 100; });
+    const rows = cur.filter(b => Number(b.obligated) > 0).map(b => ({ n: b.name, c: Number(b.contributors || 0), o: Number(b.obligated), p: Number(b.contributors || 0) / Number(b.obligated) * 100 })).sort((a, b) => b.p - a.p);
+    if (!rows.length) { box.innerHTML = '<div style="color:var(--muted); padding:10px;">لا توجد بيانات فروع لهذه السنة.</div>'; return; }
+    box.innerHTML = rows.map((r, i) => {
+      const cls = r.p >= 80 ? "ok" : r.p >= 50 ? "near" : "over";
+      const pv = prev[r.n], d = pv != null ? r.p - pv : null;
+      const trend = d == null ? "" : `<small style="color:${d >= 0 ? "#1E7B45" : "#B42318"}; font-weight:800;">${d >= 0 ? "▲" : "▼"} ${Math.abs(d).toFixed(0)} عن ${prevY}</small>`;
+      return `<div class="cat-row"><div class="cat-name">${i < 3 ? ["🥇", "🥈", "🥉"][i] + " " : ""}${escHtml(r.n)}</div>
+        <div class="cat-track"><div class="cat-fill ${cls}" style="width:${Math.max(1, r.p).toFixed(1)}%"></div></div>
+        <div class="cat-val"><strong>${r.p.toFixed(0)}%</strong> <small>(${r.c} من ${r.o})</small> ${trend}</div></div>`;
+    }).join("");
+  }
+
+  function renderFinanceExtras() {
+    try { renderCatChart(); renderYearsCompare(); renderBranchPct(); if (isAdmin) renderSettingsBox(); } catch (e) { console.warn("extras", e); }
+  }
+
+  // ---- Settings admin box (categories, budgets, approval limit) ----
+  function renderSettingsBox() {
+    const ta = document.getElementById("setCats"), tb = document.getElementById("setBudgetBody"), lim = document.getElementById("setApprLimit");
+    if (!ta || !isAdmin) return;
+    if (document.activeElement !== ta) ta.value = S().cats.join("\n");
+    if (document.activeElement !== lim) lim.value = S().approvalLimit;
+    document.getElementById("setBudgetYear").textContent = activeYear;
+    const bud = S().budgets[activeYear] || {}, by = expensesByCat(txData);
+    tb.innerHTML = S().cats.filter(c => c !== CAT_TRANSFER).map(c => `<tr><td class="text-right">${escHtml(c)}</td><td>${fmtNum(by[c] || 0)}</td><td><input class="rec-input" data-cat="${escHtml(c)}" min="0" step="1" type="number" value="${bud[c] != null ? bud[c] : ""}" placeholder="بدون موازنة" style="max-width:150px;"/></td></tr>`).join("");
+  }
+  function saveSettingsBox() {
+    const cats = [...new Set(document.getElementById("setCats").value.split("\n").map(x => x.trim()).filter(Boolean))];
+    if (!cats.includes("أخرى")) cats.push("أخرى");
+    if (!cats.includes(CAT_TRANSFER)) cats.push(CAT_TRANSFER);
+    const bud = {};
+    document.querySelectorAll("#setBudgetBody input[data-cat]").forEach(i => { const v = Number(i.value); if (i.value !== "" && v >= 0) bud[i.dataset.cat] = v; });
+    const budgets = Object.assign({}, S().budgets, { [activeYear]: bud });
+    const lim = Math.max(0, Number(document.getElementById("setApprLimit").value || 0));
+    saveSettings({ cats, budgets, approvalLimit: lim, apprFrom: S().apprFrom || new Date().toISOString().slice(0, 10) });
+    const m = document.getElementById("setMsg"); m.textContent = "✅ تم الحفظ"; setTimeout(() => { m.textContent = ""; }, 3000);
+    renderFinanceExtras(); renderMonthlyLedger();
+  }
+
+  // ---- 8. Approval of large expenses ----
+  function needsApproval(t) {
+    const s = S();
+    if (!s.apprFrom || !(s.approvalLimit > 0)) return false;
+    if (Number(t.exp || 0) < s.approvalLimit || catOf(t) === CAT_TRANSFER) return false;
+    return String(t.gDate || "") >= s.apprFrom || Number(t.id) > Date.parse(s.apprFrom);
+  }
+  function approveTx(month, idx) {
+    const t = (txData[month] || [])[idx];
+    if (!t || !isAdmin) return;
+    const by = (prompt(`اعتماد المصروف:\n${t.desc} — ${fmtNum(t.exp)} ر.س\n\nاكتب اسم عضو المجلس الذي اعتمده:`) || "").trim();
+    if (!by) return;
+    t.appr = { by, at: new Date().toISOString().slice(0, 10) };
+    persistTx(); renderMonthlyLedger();
+  }
+  function updateTxFormExtras() {
+    const kind = (document.getElementById("txKindInput") || {}).value;
+    const amt = Number((document.getElementById("txAmountInput") || {}).value || 0);
+    const catBox = document.getElementById("txCatBox"), apBox = document.getElementById("txApprBox");
+    if (catBox) catBox.style.display = kind === "exp" ? "" : "none";
+    const cs = document.getElementById("txCatInput");
+    if (cs && !cs.options.length) cs.innerHTML = '<option value="">تلقائي حسب البيان</option>' + catOptions("");
+    const need = kind === "exp" && S().approvalLimit > 0 && amt >= S().approvalLimit;
+    if (apBox) { apBox.style.display = need ? "" : "none"; document.getElementById("txApprLabel").textContent = `✍️ اسم عضو المجلس المعتمِد (إلزامي للمصروف من ${fmtNum(S().approvalLimit)} ر.س فأكثر)`; }
+    const ai = document.getElementById("txApproverInput"); if (ai) ai.required = need;
+  }
+
+  // ---- 4. Public invoices for members ----
+  function toggleAttPub(i) {
+    const t = attCtx && txByRef(attCtx.month, attCtx.id);
+    const a = t && (t.att || [])[i];
+    if (!a || !isAdmin) return;
+    a.pub = !a.pub; persistTx(); renderAttList(); renderMonthlyLedger();
+  }
+  function memberFileCall(id) {
+    return fetch(PORTAL_API, { method: "POST", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ action: "file", pin: portalAdminPin || portalPin, id }) })
+      .then(r => r.json()).then(out => { if (!out || !out.ok) throw new Error(out && out.error ? out.error : "failed"); return out; });
+  }
+
+  // ---- 5. Receipt voucher ----
+  function tafqit(num) {
+    const ones = ["", "واحد", "اثنان", "ثلاثة", "أربعة", "خمسة", "ستة", "سبعة", "ثمانية", "تسعة", "عشرة", "أحد عشر", "اثنا عشر", "ثلاثة عشر", "أربعة عشر", "خمسة عشر", "ستة عشر", "سبعة عشر", "ثمانية عشر", "تسعة عشر"];
+    const tens = ["", "", "عشرون", "ثلاثون", "أربعون", "خمسون", "ستون", "سبعون", "ثمانون", "تسعون"];
+    const hund = ["", "مائة", "مائتان", "ثلاثمائة", "أربعمائة", "خمسمائة", "ستمائة", "سبعمائة", "ثمانمائة", "تسعمائة"];
+    const g = n => { const h = Math.floor(n / 100), r = n % 100, p = []; if (h) p.push(hund[h]); if (r) p.push(r < 20 ? ones[r] : (r % 10 ? ones[r % 10] + " و" : "") + tens[Math.floor(r / 10)]); return p.join(" و"); };
+    const scale = (n, one, two, few, many) => n === 1 ? one : n === 2 ? two : n <= 10 ? g(n) + " " + few : g(n) + " " + many;
+    const words = n => {
+      if (!n) return "صفر";
+      const m = Math.floor(n / 1e6), th = Math.floor(n % 1e6 / 1000), r = n % 1000, p = [];
+      if (m) p.push(scale(m, "مليون", "مليونان", "ملايين", "مليون"));
+      if (th) p.push(scale(th, "ألف", "ألفان", "آلاف", "ألف"));
+      if (r) p.push(g(r));
+      return p.join(" و");
+    };
+    const v = Math.round(Number(num || 0) * 100), riy = Math.floor(v / 100), hal = v % 100;
+    return "فقط " + words(riy) + " ريال" + (hal ? " و" + words(hal) + " هللة" : "") + " لا غير";
+  }
+  let rcptCtx = null;
+  function payerFromDesc(d) { const m = String(d || "").match(/(?:^|\s)من\s+(.+)$/); return m ? m[1].trim() : ""; }
+  function openReceipt(month, idx) {
+    const t = (txData[month] || [])[idx];
+    if (!t || !isAdmin || !(Number(t.rev) > 0)) return;
+    if (!t.rcpt) {
+      const seq = Object.assign({}, S().rcptSeq), n = (Number(seq[activeYear]) || 0) + 1;
+      seq[activeYear] = n; t.rcpt = `${activeYear}-${String(n).padStart(4, "0")}`;
+      saveSettings({ rcptSeq: seq }); persistTx();
+    }
+    rcptCtx = { month, id: t.id };
+    document.getElementById("rcptPayer").value = t.payer || payerFromDesc(t.desc);
+    renderReceipt();
+    document.getElementById("rcptModal").classList.add("show");
+  }
+  function closeReceipt() { document.getElementById("rcptModal").classList.remove("show"); rcptCtx = null; }
+  function receiptHtml(t, payer) {
+    const g = t.gDate ? t.gDate.split("-").reverse().join("/") : "—";
+    return `<div class="rcpt">
+      <div class="rcpt-head"><img alt="" src="${LOGO_SRC}"/><div><div class="rcpt-org">أسرة الشعيبي بالأحساء</div><div class="rcpt-title">سند قبض</div></div>
+      <div class="rcpt-no">رقم السند<br/><b>${escHtml(t.rcpt || "")}</b></div></div>
+      <div class="rcpt-grid">
+        <div><span>التاريخ الهجري</span><b>${escHtml(t.hDate || "—")}</b></div>
+        <div><span>التاريخ الميلادي</span><b>${escHtml(g)}</b></div>
+        <div class="wide"><span>استلمنا من المكرم</span><b>${escHtml(payer || "................................")}</b></div>
+        <div class="wide"><span>مبلغاً وقدره</span><b class="rcpt-amt">${fmtNum(t.rev)} ر.س</b></div>
+        <div class="wide"><span>كتابةً</span><b>${escHtml(tafqit(t.rev))}</b></div>
+        <div class="wide"><span>وذلك عن</span><b>${escHtml(t.desc || "")}</b></div>
+        <div><span>الحساب</span><b>${escHtml(t.account || "")}</b></div>
+        <div><span>نوع الحركة</span><b>${escHtml(t.type || "")}</b></div>
+      </div>
+      <div class="rcpt-foot"><div>أمين صندوق الأسرة<br/><br/>..........................</div><div>جزاكم الله خيراً وبارك في مالكم</div></div>
+    </div>`;
+  }
+  function renderReceipt() {
+    const t = rcptCtx && txByRef(rcptCtx.month, rcptCtx.id);
+    if (!t) return;
+    document.getElementById("rcptPreview").innerHTML = receiptHtml(t, document.getElementById("rcptPayer").value.trim());
+  }
+  function saveReceiptPayer() {
+    const t = rcptCtx && txByRef(rcptCtx.month, rcptCtx.id);
+    const v = document.getElementById("rcptPayer").value.trim();
+    if (t && v !== (t.payer || "")) { t.payer = v; persistTx(); }
+  }
+  const RCPT_CSS = `.rcpt{direction:rtl;font-family:Tahoma,Arial,sans-serif;border:2px solid #1E3821;border-radius:14px;padding:18px;background:#fff;color:#1E3821;max-width:680px;margin:0 auto}
+    .rcpt-head{display:flex;align-items:center;gap:14px;border-bottom:2px solid #C9A227;padding-bottom:10px;margin-bottom:12px}.rcpt-head img{width:70px;height:auto}
+    .rcpt-org{font-weight:800;font-size:15px}.rcpt-title{font-weight:900;font-size:24px;color:#8A6A00}.rcpt-no{margin-inline-start:auto;text-align:center;border:1.5px dashed #C9A227;border-radius:10px;padding:6px 12px;font-size:12px}
+    .rcpt-no b{font-size:16px}.rcpt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.rcpt-grid>div{border:1px solid #E3E7E3;border-radius:8px;padding:7px 10px;display:flex;gap:8px;align-items:baseline}
+    .rcpt-grid .wide{grid-column:1/-1}.rcpt-grid span{color:#5C6B5E;font-size:12px;white-space:nowrap}.rcpt-grid b{font-size:14px}.rcpt-amt{font-size:18px!important;color:#1E7B45}
+    .rcpt-foot{display:flex;justify-content:space-between;margin-top:18px;font-size:13px;font-weight:700}`;
+  function printReceipt() {
+    saveReceiptPayer();
+    const t = rcptCtx && txByRef(rcptCtx.month, rcptCtx.id);
+    if (!t) return;
+    const w = window.open("", "_blank");
+    if (!w) { alert("اسمح بالنوافذ المنبثقة لطباعة السند."); return; }
+    w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>سند قبض ${escHtml(t.rcpt)}</title><style>body{margin:24px;background:#fff}${RCPT_CSS}@page{size:A5 landscape;margin:10mm}</style></head><body>${receiptHtml(t, document.getElementById("rcptPayer").value.trim())}<script>window.onload=()=>setTimeout(()=>window.print(),300)<\/script></body></html>`);
+    w.document.close();
+  }
+  async function copyReceiptText() {
+    saveReceiptPayer();
+    const t = rcptCtx && txByRef(rcptCtx.month, rcptCtx.id);
+    if (!t) return;
+    const payer = document.getElementById("rcptPayer").value.trim();
+    const txt = `🧾 سند قبض — أسرة الشعيبي بالأحساء\nرقم السند: ${t.rcpt}\nالتاريخ: ${t.hDate || ""}هـ${t.gDate ? " الموافق " + t.gDate.split("-").reverse().join("/") + "م" : ""}\nاستلمنا من المكرم: ${payer || "—"}\nمبلغ: ${fmtNum(t.rev)} ر.س (${tafqit(t.rev)})\nوذلك عن: ${t.desc}\n\nجزاكم الله خيراً وبارك في مالكم.`;
+    const ok = await copyText(txt);
+    const m = document.getElementById("rcptMsg"); m.textContent = ok ? "✅ تم نسخ نص السند — الصقه في واتساب" : "تعذر النسخ"; setTimeout(() => { m.textContent = ""; }, 4000);
+  }
+
+  // ---- 7. Monthly report (PDF in Google Drive) ----
+  function currentHijri() {
+    try {
+      const p = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", { year: "numeric", month: "numeric", day: "numeric", timeZone: "Asia/Riyadh" }).formatToParts(new Date());
+      const g = k => Number((p.find(x => x.type === k) || {}).value);
+      return { y: String(g("year")), m: g("month"), d: g("day") };
+    } catch (e) { return null; }
+  }
+  function monthReportHtml(year, month) {
+    const src = portalYearSource(year);
+    const list = ((src && src.txData) || {})[month] || [];
+    const accs = {}, cats = {};
+    let rev = 0, exp = 0;
+    list.forEach(t => {
+      const a = t.account || "—"; accs[a] = accs[a] || { r: 0, e: 0 };
+      accs[a].r += Number(t.rev || 0); accs[a].e += Number(t.exp || 0);
+      rev += Number(t.rev || 0); exp += Number(t.exp || 0);
+      if (Number(t.exp) > 0) { const c = catOf(t); cats[c] = (cats[c] || 0) + Number(t.exp); }
+    });
+    const bal = src && src.finData && src.finData.kpis ? src.finData.kpis.netBalance : null;
+    const td = 'style="border:1px solid #cfd8cf;padding:6px 8px;text-align:center;"', th = 'style="border:1px solid #cfd8cf;padding:6px 8px;background:#1E3821;color:#fff;"';
+    const n = v => fmtNum(v);
+    return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير ${month} ${year}</title></head>
+<body style="font-family:Arial,Tahoma,sans-serif;direction:rtl;text-align:right;color:#1E3821;margin:24px;">
+<table style="width:100%;border-collapse:collapse;"><tr><td style="width:90px;"><img src="${LOGO_SRC}" style="width:80px;"/></td>
+<td><div style="font-size:20px;font-weight:bold;">أسرة الشعيبي بالأحساء — مجلس الإدارة</div><div style="font-size:16px;color:#8A6A00;font-weight:bold;">التقرير المالي الشهري — شهر ${month} ${year}هـ</div>
+<div style="font-size:11px;color:#5C6B5E;">أُعدّ تلقائياً من بوابة الأسرة بتاريخ ${formatGregorianToday()}</div></td></tr></table>
+<hr style="border:0;border-top:2px solid #C9A227;margin:10px 0 14px;"/>
+<table style="width:100%;border-collapse:collapse;margin-bottom:14px;"><tr>
+<td ${td}><div style="font-size:11px;">إيرادات الشهر</div><b style="color:#1E7B45;font-size:16px;">${n(rev)} ر.س</b></td>
+<td ${td}><div style="font-size:11px;">مصروفات الشهر</div><b style="color:#B42318;font-size:16px;">${n(exp)} ر.س</b></td>
+<td ${td}><div style="font-size:11px;">صافي حركة الشهر</div><b style="font-size:16px;">${n(rev - exp)} ر.س</b></td>
+${bal != null ? `<td ${td}><div style="font-size:11px;">إجمالي الأرصدة حالياً</div><b style="font-size:16px;">${n(bal)} ر.س</b></td>` : ""}</tr></table>
+<h3 style="font-size:14px;margin:12px 0 6px;">الحركة حسب الحساب البنكي</h3>
+<table style="width:100%;border-collapse:collapse;"><tr><th ${th}>الحساب</th><th ${th}>إيراد</th><th ${th}>مصروف</th><th ${th}>الصافي</th></tr>
+${Object.keys(accs).map(a => `<tr><td ${td}>${escHtml(a)}</td><td ${td}>${n(accs[a].r)}</td><td ${td}>${n(accs[a].e)}</td><td ${td}>${n(accs[a].r - accs[a].e)}</td></tr>`).join("") || `<tr><td ${td} colspan="4">لا توجد حركات</td></tr>`}</table>
+${Object.keys(cats).length ? `<h3 style="font-size:14px;margin:12px 0 6px;">المصروفات حسب البند</h3><table style="width:100%;border-collapse:collapse;"><tr><th ${th}>البند</th><th ${th}>المبلغ</th><th ${th}>النسبة</th></tr>
+${Object.keys(cats).sort((a, b) => cats[b] - cats[a]).map(c => `<tr><td ${td}>${escHtml(c)}</td><td ${td}>${n(cats[c])}</td><td ${td}>${exp ? (cats[c] / exp * 100).toFixed(1) : 0}%</td></tr>`).join("")}</table>` : ""}
+<h3 style="font-size:14px;margin:12px 0 6px;">تفاصيل الحركات (${list.length})</h3>
+<table style="width:100%;border-collapse:collapse;font-size:11px;"><tr><th ${th}>م</th><th ${th}>التاريخ</th><th ${th}>البيان</th><th ${th}>الحساب</th><th ${th}>إيراد</th><th ${th}>مصروف</th></tr>
+${list.map((t, i) => `<tr><td ${td}>${i + 1}</td><td ${td}>${escHtml(t.hDate || "")}</td><td ${td} style="border:1px solid #cfd8cf;padding:6px 8px;text-align:right;">${escHtml(t.desc || "")}${t.appr ? ` <span style="color:#1E7B45;">(معتمد: ${escHtml(t.appr.by)})</span>` : ""}</td><td ${td}>${escHtml(t.account || "")}</td><td ${td}>${Number(t.rev) ? n(t.rev) : "—"}</td><td ${td}>${Number(t.exp) ? n(t.exp) : "—"}</td></tr>`).join("")}</table>
+<div style="margin-top:28px;font-size:12px;"><table style="width:100%;"><tr><td>أمين الصندوق: .....................</td><td>رئيس مجلس الإدارة: .....................</td></tr></table></div>
+</body></html>`;
+  }
+  function renderReportsBox() {
+    const sel = document.getElementById("repMonth"), list = document.getElementById("repList");
+    if (!sel || !isAdmin) return;
+    const cur = sel.value;
+    sel.innerHTML = HIJRI_MONTHS_LIST.filter(m => (txData[m] || []).length).map(m => `<option value="${m}">${m} ${activeYear}هـ</option>`).join("");
+    if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+    const reps = S().reports.slice().reverse();
+    list.innerHTML = reps.length ? reps.slice(0, 24).map(r => `<div class="att-item"><span>📄</span><span class="nm">تقرير ${escHtml(r.month)} ${escHtml(r.year)}هـ</span><span style="font-size:0.78rem; color:var(--muted);">${escHtml(r.at || "")}${r.auto ? " — تلقائي" : ""}</span>${r.url ? `<a class="btn-action btn-outline att-btn" href="${escHtml(r.url)}" rel="noopener" target="_blank">فتح في Drive</a>` : ""}</div>`).join("")
+      : '<div style="color:var(--muted); font-size:0.86rem;">لم يُحفظ أي تقرير بعد.</div>';
+  }
+  function previewMonthReport() {
+    const m = document.getElementById("repMonth").value;
+    if (!m) return;
+    const w = window.open("", "_blank");
+    if (!w) { alert("اسمح بالنوافذ المنبثقة لعرض التقرير."); return; }
+    w.document.write(monthReportHtml(activeYear, m).replace("</body>", "<script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body>"));
+    w.document.close();
+  }
+  async function saveMonthReport(month, year, auto) {
+    year = year || activeYear;
+    const msg = document.getElementById("repMsg");
+    if (!auto && msg) { msg.style.color = "var(--muted)"; msg.textContent = "⏳ جارٍ إنشاء التقرير وحفظه في Google Drive..."; }
+    try {
+      const out = await bkCall({ action: "saveReport", year, month, name: `التقرير المالي الشهري - ${month} ${year}هـ`, html: monthReportHtml(year, month) });
+      const reps = S().reports.filter(r => !(r.year === year && r.month === month));
+      reps.push({ year, month, id: out.file.id, url: out.file.url, at: new Date().toISOString().slice(0, 10), auto: !!auto });
+      saveSettings({ reports: reps.slice(-60) });
+      if (msg) { msg.style.color = "var(--rev-green)"; msg.textContent = `✅ حُفظ تقرير ${month} في مجلد «التقارير الشهرية» في Google Drive`; }
+      renderReportsBox();
+      return true;
+    } catch (e) {
+      if (!auto && msg) { msg.style.color = "#B42318"; msg.textContent = String(e && e.message) === "bad" ? "⚠️ الخادم يحتاج تحديثاً لدعم التقارير" : "⚠️ تعذر الحفظ: " + e.message; }
+      return false;
+    }
+  }
+  let autoReportDone = false;
+  function autoMonthlyReport() {
+    if (autoReportDone || !isAdmin) return;
+    autoReportDone = true;
+    const h = currentHijri();
+    if (!h) return;
+    const pm = h.m === 1 ? 12 : h.m - 1, py = h.m === 1 ? String(Number(h.y) - 1) : h.y;
+    const month = HIJRI_MONTHS_LIST[pm - 1], src = portalYearSource(py);
+    if (!src || !src.txData || !(src.txData[month] || []).length) return;
+    if (S().reports.some(r => r.year === py && r.month === month)) return;
+    saveMonthReport(month, py, true);
+  }
+
+  // ---- 9. Install on phone (PWA) ----
+  let deferredInstall = null;
+  function isStandalone() { return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true; }
+  function showInstallBar() {
+    const bar = document.getElementById("installBar");
+    if (!bar || isStandalone()) return;
+    let dismissed = false; try { dismissed = localStorage.getItem("shuaibi_install_hide") === "1"; } catch (e) {}
+    if (dismissed) return;
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (!deferredInstall && !ios) return;
+    bar.style.display = "flex";
+    document.getElementById("installTxt").innerHTML = deferredInstall ? "📲 ثبّت البوابة على جوالك لتفتحها كتطبيق من الشاشة الرئيسية."
+      : "📲 لتثبيت البوابة على الآيفون: اضغط زر المشاركة <b>⎋</b> في Safari ثم «إضافة إلى الشاشة الرئيسية».";
+    document.getElementById("installBtn").style.display = deferredInstall ? "" : "none";
+  }
+  async function doInstall() {
+    if (!deferredInstall) return;
+    deferredInstall.prompt();
+    try { await deferredInstall.userChoice; } catch (e) {}
+    deferredInstall = null; hideInstallBar();
+  }
+  function hideInstallBar() { const b = document.getElementById("installBar"); if (b) b.style.display = "none"; try { localStorage.setItem("shuaibi_install_hide", "1"); } catch (e) {} }
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); deferredInstall = e; showInstallBar(); });
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+  }
+  setTimeout(showInstallBar, 1500);
 
   // ===== Backups (stored by the server in the owner's Google Drive) =====
   let bkCache = [];
@@ -5300,11 +5884,27 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 </div>
 <div id="attTxInfo" style="font-size:0.86rem; color:var(--muted); font-weight:700;"></div>
 <div class="att-list" id="attList"></div>
-<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+<div id="attAdminTools" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
 <label class="btn-action btn-gold" style="cursor:pointer;">➕ إرفاق ملف<input accept="image/*,application/pdf" onchange="attUploadFromModal(this)" style="display:none;" type="file"/></label>
 <span id="attMsg" style="font-size:0.84rem; font-weight:700;"></span>
 </div>
 <div class="att-preview" id="attPreview"></div>
+</div>
+</div>
+<div class="modal-bg" id="rcptModal" onclick="if(event.target===this) closeReceipt()">
+<div class="modal-box">
+<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+<h3>🧾 سند قبض</h3>
+<button class="btn-action btn-outline" onclick="closeReceipt()" type="button">✕ إغلاق</button>
+</div>
+<label style="font-weight:800; font-size:0.85rem;">اسم الدافع (يمكن تعديله)</label>
+<input class="rec-input" id="rcptPayer" oninput="renderReceipt()" onchange="saveReceiptPayer()" style="width:100%; margin:4px 0 10px;" type="text"/>
+<div id="rcptPreview"></div>
+<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px;">
+<button class="btn-action btn-gold" onclick="printReceipt()" type="button">🖨️ طباعة / حفظ PDF</button>
+<button class="btn-action btn-outline" onclick="copyReceiptText()" type="button">📋 نسخ نص السند للواتساب</button>
+<span id="rcptMsg" style="font-weight:800; color:var(--rev-green); font-size:0.85rem;"></span>
+</div>
 </div>
 </div>
 </body></html>
