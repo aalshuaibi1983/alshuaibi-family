@@ -1381,6 +1381,7 @@
 <div class="toolbar">
 <label style="font-weight:700; color:var(--primary-dark); font-size:0.86rem;">اختر الشهر الهجري:</label>
 <select id="ledgerMonthSelect" onchange="selectLedgerMonth(this.value)">
+<option value="__ALL__">كل الأشهر</option>
 <option value="محرم">محرم</option>
 <option value="صفر">صفر</option>
 <option value="ربيع أول">ربيع أول</option>
@@ -1963,7 +1964,14 @@
   let pageUpdated = {};            // per page: { fin|tx|supporters|contrib: {t, s} }
   const accSelected = new Set();   // names of selected bank accounts on the finance page
   let gSheetCsvUrl = "";
-  let selectedLedgerMonth = "جمادى الأول";
+  const LEDGER_ALL = "__ALL__";
+  let selectedLedgerMonth = (() => {
+    try {
+      const p = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura-nu-latn", { month: "numeric", timeZone: "Asia/Riyadh" }).formatToParts(new Date());
+      const m = Number((p.find(x => x.type === "month") || {}).value);
+      return ["محرم", "صفر", "ربيع أول", "ربيع ثاني", "جمادى الأول", "جمادى الآخر", "رجب", "شعبان", "رمضان", "شوال", "ذو القعدة", "ذو الحجة"][m - 1] || "جمادى الأول";
+    } catch (e) { return "جمادى الأول"; }
+  })();
   let isAdmin = false;
 
   const DEFAULT_Y1447 = {"fin": {"title": "التقرير المالي التنفيذي للمجلس الاداري — لعام 1447هـ", "subtitle": "ملخص الحركة المالية السنوية والشهرية (إيرادات، مصروفات، الرصيد)", "kpis": {"totalRevenue": 0, "totalExpense": 0, "netBalance": 0}, "accounts": [{"id": 1, "name": "المساهمات و الدعم", "revenue": 0, "expense": 0, "balance": 0}, {"id": 2, "name": "الصدقات", "revenue": 0, "expense": 0, "balance": 0}, {"id": 3, "name": "الزكاة", "revenue": 0, "expense": 0, "balance": 0}, {"id": 4, "name": "الاستثمار", "revenue": 0, "expense": 0, "balance": 0}, {"id": 5, "name": "مشروع مجلس الأسرة", "revenue": 0, "expense": 0, "balance": 0}], "months": [{"id": 1, "month": "محرم", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 2, "month": "صفر", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 3, "month": "ربيع أول", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 4, "month": "ربيع ثاني", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 5, "month": "جمادى الأول", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 6, "month": "جمادى الآخر", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 7, "month": "رجب", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 8, "month": "شعبان", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 9, "month": "رمضان", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 10, "month": "شوال", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 11, "month": "ذو القعدة", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}, {"id": 12, "month": "ذو الحجة", "support": {"rev": 0, "exp": 0, "bal": 0}, "zakat": {"rev": 0, "exp": 0, "bal": 0}, "sadaqat": {"rev": 0, "exp": 0, "bal": 0}, "investment": {"rev": 0, "exp": 0, "bal": 0}, "riyadBank": {"rev": 0, "exp": 0, "bal": 0}, "totalRev": 0, "totalExp": 0, "totalBal": 0}]}, "tx": {"محرم": [], "صفر": [], "ربيع أول": [], "ربيع ثاني": [], "جمادى الأول": [], "جمادى الآخر": [], "رجب": [], "شعبان": [], "رمضان": [], "شوال": [], "ذو القعدة": [], "ذو الحجة": []}, "supporters": [], "contrib": {"menSummary": {"obligated": 0, "contributors": 0, "nonContributors": 0}, "womenSummary": {"totalCount": 0}, "branchesSummary": [], "menBranches": [], "womenList": []}, "lastUpdatedStr": "—"};
@@ -4377,7 +4385,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (sel && sel.value !== selectedLedgerMonth) sel.value = selectedLedgerMonth;
 
     if (pillsWrap) {
-      pillsWrap.innerHTML = HIJRI_MONTHS_LIST.map(m => {
+      pillsWrap.innerHTML = `<button type="button" class="month-pill ${selectedLedgerMonth === LEDGER_ALL ? "active" : ""}" onclick="selectLedgerMonth(LEDGER_ALL)">كل الأشهر (${HIJRI_MONTHS_LIST.reduce((n, m) => n + (txData[m] || []).length, 0)})</button>` + HIJRI_MONTHS_LIST.map(m => {
         const cnt = (txData[m] || []).length;
         const activeCls = m === selectedLedgerMonth ? "active" : "";
         return `<button type="button" class="month-pill ${activeCls}" onclick="selectLedgerMonth('${m}')">${m} (${cnt})</button>`;
@@ -4386,12 +4394,14 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 
     const accFilter = document.getElementById("ledgerAccountFilter")?.value || "ALL";
     const q = (document.getElementById("ledgerSearchInput")?.value || "").trim().toLowerCase();
-    const list = txData[selectedLedgerMonth] || [];
+    const ALLM = selectedLedgerMonth === LEDGER_ALL;
+    const entries = ALLM ? HIJRI_MONTHS_LIST.flatMap(m => (txData[m] || []).map((tx, i) => [m, tx, i])) : (txData[selectedLedgerMonth] || []).map((tx, i) => [selectedLedgerMonth, tx, i]);
+    const periodLbl = ALLM ? "كل الأشهر" : "شهر " + selectedLedgerMonth;
 
     let mRev = 0, mExp = 0, runningBal = 0;
     const rowsHtml = [];
 
-    list.forEach((tx, origIdx) => {
+    entries.forEach(([rowMonth, tx, origIdx]) => {
       const acc = mapTypeToAccount(tx.type, tx.account);
       if (accFilter !== "ALL" && acc !== accFilter) return;
       if (q && !tx.desc.toLowerCase().includes(q) && !tx.type.toLowerCase().includes(q) && !acc.toLowerCase().includes(q)) return;
@@ -4408,32 +4418,32 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       const attN = Array.isArray(tx.att) ? tx.att.length : 0;
       const pubN = Array.isArray(tx.att) ? tx.att.filter(a => a.pub).length : 0;
       const invN = Array.isArray(tx.att) ? tx.att.filter(a => a.kind !== "order").length : 0, ordN = attN - invN;
-      const feeChild = tx.feeId ? (txData[selectedLedgerMonth] || []).find(x => x.id === tx.feeId) : null;
-      const feeBtn = e > 0 && !isFeeTx(tx) && !feeChild ? `<button type="button" class="btn-action btn-outline att-btn" title="إضافة رسوم التحويل لهذا المصروف" onclick="addFeeToTx('${selectedLedgerMonth}', ${origIdx})">💸</button> ` : "";
-      const rcptBtn = r > 0 && !isOpening(tx) ? `<button type="button" class="btn-action btn-outline att-btn" title="سند قبض${tx.rcpt ? " " + tx.rcpt : ""}" onclick="openReceipt('${selectedLedgerMonth}', ${origIdx})">🧾</button> ` : "";
+      const feeChild = tx.feeId ? (txData[rowMonth] || []).find(x => x.id === tx.feeId) : null;
+      const feeBtn = e > 0 && !isFeeTx(tx) && !feeChild ? `<button type="button" class="btn-action btn-outline att-btn" title="إضافة رسوم التحويل لهذا المصروف" onclick="addFeeToTx('${rowMonth}', ${origIdx})">💸</button> ` : "";
+      const rcptBtn = r > 0 && !isOpening(tx) ? `<button type="button" class="btn-action btn-outline att-btn" title="سند قبض${tx.rcpt ? " " + tx.rcpt : ""}" onclick="openReceipt('${rowMonth}', ${origIdx})">🧾</button> ` : "";
       let extra = "";
       if (r > 0 && !isOpening(tx)) {
         extra += isAdmin && !forcedCat(tx)
-          ? `<br/><select class="cat-chip rcat" title="بند الإيراد" onchange="setTxRcat('${selectedLedgerMonth}', ${origIdx}, this.value)">${revCatOptions(revCatOf(tx))}</select>`
+          ? `<br/><select class="cat-chip rcat" title="بند الإيراد" onchange="setTxRcat('${rowMonth}', ${origIdx}, this.value)">${revCatOptions(revCatOf(tx))}</select>`
           : `<br/><span class="cat-chip rcat">${escHtml(revCatOf(tx))}</span>`;
       }
       if (e > 0) {
         extra += isAdmin && !forcedCat(tx)
-          ? `<br/><select class="cat-chip" title="بند المصروف" onchange="setTxCat('${selectedLedgerMonth}', ${origIdx}, this.value)">${catOptions(catOf(tx))}</select>`
+          ? `<br/><select class="cat-chip" title="بند المصروف" onchange="setTxCat('${rowMonth}', ${origIdx}, this.value)">${catOptions(catOf(tx))}</select>`
           : `<br/><span class="cat-chip">${escHtml(catOf(tx))}</span>`;
         if (tx.appr) extra += ` <span class="appr-ok">✔ معتمد من ${escHtml(tx.appr.by)}</span>`;
-        else if (isAdmin && needsApproval(tx)) extra += ` <button type="button" class="appr-need" onclick="approveTx('${selectedLedgerMonth}', ${origIdx})">⏳ بحاجة اعتماد</button>`;
+        else if (isAdmin && needsApproval(tx)) extra += ` <button type="button" class="appr-need" onclick="approveTx('${rowMonth}', ${origIdx})">⏳ بحاجة اعتماد</button>`;
       }
-      if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎 المرفقات (${pubN})</button>`;
+      if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${rowMonth}', ${origIdx})">📎 المرفقات (${pubN})</button>`;
       if (isAdmin && tx.rcpt) extra += ` <span class="cat-chip" style="background:#EEF3EE; color:var(--primary-dark); border-color:#C9D6C9;">🧾 ${escHtml(tx.rcpt)}</span>`;
       const adminCell = isAdmin
-        ? `<td class="m-actions" style="white-space:nowrap;">${feeBtn}${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
+        ? `<td class="m-actions" style="white-space:nowrap;">${feeBtn}${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${rowMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${rowMonth}', ${origIdx})">🗑️ حذف</button></td>`
         : "";
 
       rowsHtml.push(`<tr>
         <td class="m-hide">${rowsHtml.length + 1}</td>
         <td class="m-hide" style="white-space:nowrap;">${tx.gDate || "—"}</td>
-        <td data-label="التاريخ" style="white-space:nowrap;">${tx.hDate || "—"}${tx.gDate ? `<span class="m-only" style="color:var(--muted); font-size:0.78rem;"> (${tx.gDate.split("-").reverse().join("/")})</span>` : ""}</td>
+        <td data-label="التاريخ" style="white-space:nowrap;">${tx.hDate || "—"}${ALLM ? `<div style="font-size:0.72rem; color:var(--muted); font-weight:700;">${rowMonth}</div>` : ""}${tx.gDate ? `<span class="m-only" style="color:var(--muted); font-size:0.78rem;"> (${tx.gDate.split("-").reverse().join("/")})</span>` : ""}</td>
         <td class="text-right m-desc" style="font-weight:600;">${tx.desc}${extra}</td>
         <td data-label="النوع"><span style="background:#EEF3EE; color:var(--primary-dark); padding:2px 8px; border-radius:6px; font-size:0.8rem; font-weight:700;">${tx.type}</span></td>
         <td data-label="الحساب" style="font-weight:700; color:var(--primary);">${acc}</td>
@@ -4452,11 +4462,11 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       const netBorder = netM < 0 ? "#F5C2C0" : "#8BB892";
       summaryStrip.innerHTML = `
         <div class="ch-stat" style="background:#EBF9F1; border:1.5px solid #95D5B2; color:#1E3821;">
-          <span style="color:#3D5240; font-weight:700;">إيرادات شهر ${selectedLedgerMonth}</span>
+          <span style="color:#3D5240; font-weight:700;">إيرادات ${periodLbl}</span>
           <strong style="color:#008A3E; font-size:1.12rem;">${fmtNum(mRev)} ر.س</strong>
         </div>
         <div class="ch-stat" style="background:#FEF2F2; border:1.5px solid #F5C2C0; color:#1E3821;">
-          <span style="color:#5C3A38; font-weight:700;">مصروفات شهر ${selectedLedgerMonth}</span>
+          <span style="color:#5C3A38; font-weight:700;">مصروفات ${periodLbl}</span>
           <strong style="color:#D92D20; font-size:1.12rem;">${fmtNum(mExp)} ر.س</strong>
         </div>
         <div class="ch-stat" style="background:${netBg}; border:1.5px solid ${netBorder}; color:${netColor};">
@@ -4473,10 +4483,10 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const moreN = Math.max(0, rowsHtml.length - limitN);
     tbody.innerHTML = rowsHtml.length > 0
       ? rowsHtml.slice(0, limitN).join("") + (moreN ? `<tr class="more-row"><td colspan="${colSpanEmpty}"><button class="btn-action btn-gold" onclick="ledgerShowN += 30; renderMonthlyLedger()" type="button">⬇️ عرض ${Math.min(30, moreN)} حركة أخرى (المتبقي ${moreN})</button></td></tr>` : "")
-      : `<tr><td colspan="${colSpanEmpty}" style="padding:18px; color:var(--muted);">لا توجد عمليات مسجلة في شهر ${selectedLedgerMonth} مطابقة للتصفية الحالية.</td></tr>`;
+      : `<tr><td colspan="${colSpanEmpty}" style="padding:18px; color:var(--muted);">لا توجد عمليات مسجلة في ${periodLbl} مطابقة للتصفية الحالية.</td></tr>`;
 
     tfoot.innerHTML = `<tr>
-      <td colspan="6">إجمالي شهر ${selectedLedgerMonth} (${rowsHtml.length} عملية)</td>
+      <td colspan="6">إجمالي ${periodLbl} (${rowsHtml.length} عملية)</td>
       <td class="rev-val" data-label="الإيرادات">${fmtNum(mRev)}</td>
       <td class="exp-val" data-label="المصروفات">${fmtNum(mExp)}</td>
       <td data-label="الصافي">${fmtNum(mRev - mExp)}</td>
