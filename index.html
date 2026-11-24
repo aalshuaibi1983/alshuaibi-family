@@ -1298,6 +1298,10 @@
 <label>📎 إرفاق فاتورة أو إيصال (اختياري — صورة أو PDF)</label>
 <input accept="image/*,application/pdf" id="txAttachInput" type="file"/>
 </div>
+<div class="tx-field" style="grid-column: 1 / -1;">
+<label>📝 إرفاق أمر الصرف (اختياري — إن توفر)</label>
+<input accept="image/*,application/pdf" id="txOrderInput" type="file"/>
+</div>
 </div>
 <div style="margin-top:12px; display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
 <button class="btn-action btn-green" type="submit">💾 تسجيل العملية وتحديث الحسابات</button>
@@ -4216,13 +4220,20 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     portalStore.setItem("shuaibi_fin_1448", JSON.stringify(finData));
     portalStore.setItem("shuaibi_updated_1448", lastUpdatedStr);
 
-    const attInp = document.getElementById("txAttachInput");
-    if (attInp && attInp.files && attInp.files[0]) {
-      const file = attInp.files[0]; attInp.value = "";
-      uploadInvoice(file, monthName, newTxId).then(ok => {
+    const ups = [["txAttachInput", "invoice"], ["txOrderInput", "order"]].map(([id, kind]) => {
+      const inp = document.getElementById(id);
+      if (!inp || !inp.files || !inp.files[0]) return null;
+      const file = inp.files[0]; inp.value = "";
+      return { file, kind };
+    }).filter(Boolean);
+    if (ups.length) {
+      (async () => {
+        const done = [];
+        for (const u of ups) done.push(await uploadInvoice(u.file, monthName, newTxId, u.kind) ? ATT_KIND[u.kind] : null);
         const fb2 = document.getElementById("txFormFeedback");
-        if (fb2) fb2.textContent = ok ? "✅ تم تسجيل العملية وإرفاق الفاتورة." : "⚠️ سُجّلت العملية لكن تعذر رفع الفاتورة — يمكنك إرفاقها من زر 📎 في الجدول.";
-      });
+        const ok = done.filter(Boolean);
+        if (fb2) fb2.textContent = ok.length === ups.length ? `✅ تم تسجيل العملية وإرفاق ${ok.join(" و")}.` : "⚠️ سُجّلت العملية لكن تعذر رفع بعض المرفقات — يمكنك إرفاقها من زر 📎 في الجدول.";
+      })();
     }
     document.getElementById("txAmountInput").value = "";
     document.getElementById("txDescInput").value = "";
@@ -4295,6 +4306,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       const balCls = runningBal < 0 ? "bal-neg" : "bal-pos";
       const attN = Array.isArray(tx.att) ? tx.att.length : 0;
       const pubN = Array.isArray(tx.att) ? tx.att.filter(a => a.pub).length : 0;
+      const invN = Array.isArray(tx.att) ? tx.att.filter(a => a.kind !== "order").length : 0, ordN = attN - invN;
       const rcptBtn = r > 0 && !isOpening(tx) ? `<button type="button" class="btn-action btn-outline att-btn" title="سند قبض${tx.rcpt ? " " + tx.rcpt : ""}" onclick="openReceipt('${selectedLedgerMonth}', ${origIdx})">🧾</button> ` : "";
       let extra = "";
       if (e > 0) {
@@ -4304,10 +4316,10 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         if (tx.appr) extra += ` <span class="appr-ok">✔ معتمد من ${escHtml(tx.appr.by)}</span>`;
         else if (isAdmin && needsApproval(tx)) extra += ` <button type="button" class="appr-need" onclick="approveTx('${selectedLedgerMonth}', ${origIdx})">⏳ بحاجة اعتماد</button>`;
       }
-      if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎 الفاتورة${pubN > 1 ? " (" + pubN + ")" : ""}</button>`;
+      if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎 المرفقات (${pubN})</button>`;
       if (isAdmin && tx.rcpt) extra += ` <span class="cat-chip" style="background:#EEF3EE; color:var(--primary-dark); border-color:#C9D6C9;">🧾 ${escHtml(tx.rcpt)}</span>`;
       const adminCell = isAdmin
-        ? `<td style="white-space:nowrap;">${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${attN ? " " + attN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
+        ? `<td style="white-space:nowrap;">${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${selectedLedgerMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${selectedLedgerMonth}', ${origIdx})">🗑️ حذف</button></td>`
         : "";
 
       rowsHtml.push(`<tr>
@@ -4689,7 +4701,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         if (o.account !== n.account) diffs.push(`الحساب: ${o.account} ← ${n.account}`);
         if (o.gDate !== n.gDate || o.hDate !== n.hDate) diffs.push(`التاريخ: ${o.hDate || o.gDate} ← ${n.hDate || n.gDate}`);
         const oa = (o.att || []).length, na = (n.att || []).length;
-        if (JSON.stringify(o.att || []) !== JSON.stringify(n.att || [])) diffs.push(na > oa ? "إرفاق فاتورة" : na < oa ? "حذف فاتورة" : (n.att || []).filter(a => a.pub).length > (o.att || []).filter(a => a.pub).length ? "إظهار الفاتورة للأعضاء" : (n.att || []).filter(a => a.pub).length < (o.att || []).filter(a => a.pub).length ? "إخفاء الفاتورة عن الأعضاء" : "تحديث المرفقات");
+        if (JSON.stringify(o.att || []) !== JSON.stringify(n.att || [])) diffs.push(na > oa ? ((((n.att || []).slice(-1)[0] || {}).kind === "order") ? "إرفاق أمر صرف" : "إرفاق فاتورة") : na < oa ? "حذف مرفق" : (n.att || []).filter(a => a.pub).length > (o.att || []).filter(a => a.pub).length ? "إظهار الفاتورة للأعضاء" : (n.att || []).filter(a => a.pub).length < (o.att || []).filter(a => a.pub).length ? "إخفاء الفاتورة عن الأعضاء" : "تحديث المرفقات");
         if ((o.cat || "") !== (n.cat || "")) diffs.push(`البند: ${o.cat || catOf(o)} ← ${n.cat}`);
         if (JSON.stringify(o.appr || null) !== JSON.stringify(n.appr || null) && n.appr) diffs.push(`اعتماد من ${n.appr.by}`);
         if ((o.rcpt || "") !== (n.rcpt || "") && n.rcpt) diffs.push(`إصدار سند قبض ${n.rcpt}`);
@@ -5068,7 +5080,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const t = attCtx && txByRef(attCtx.month, attCtx.id);
     const box = document.getElementById("attList");
     const list = (t && t.att) || [];
-    box.innerHTML = list.some(a => isAdmin || a.pub) ? list.map((a, i) => (!isAdmin && !a.pub) ? "" : `<div class="att-item"><span>${/pdf/.test(a.mime) ? "📄" : "🖼️"}</span><span class="nm">${escHtml(a.name)}</span><span style="font-size:0.78rem; color:var(--muted);">${(Number(a.size || 0) / 1024).toFixed(0)} ك.ب</span>
+    box.innerHTML = list.some(a => isAdmin || a.pub) ? list.map((a, i) => (!isAdmin && !a.pub) ? "" : `<div class="att-item"><span class="cat-chip" style="margin:0;${a.kind === "order" ? " background:#EEF3EE; color:var(--primary-dark); border-color:#C9D6C9;" : ""}">${attKindLabel(a)}</span><span>${/pdf/.test(a.mime) ? "📄" : "🖼️"}</span><span class="nm">${escHtml(a.name)}</span><span style="font-size:0.78rem; color:var(--muted);">${(Number(a.size || 0) / 1024).toFixed(0)} ك.ب</span>
       <button class="btn-action btn-outline att-btn" onclick="viewAttachment(${i})" type="button">👁️ عرض</button>
       <button class="btn-action btn-outline att-btn" onclick="viewAttachment(${i}, true)" type="button">⬇️ تنزيل</button>
       ${isAdmin ? `<label style="display:flex; align-items:center; gap:4px; font-size:0.78rem; font-weight:800; cursor:pointer;"><input ${a.pub ? "checked" : ""} onchange="toggleAttPub(${i})" type="checkbox"/> ظاهرة للأعضاء</label>
@@ -5087,17 +5099,20 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       return blob ? new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }) : file;
     } catch (e) { return file; }
   }
-  async function uploadInvoice(file, month, txId) {
+  const ATT_KIND = { invoice: "الفاتورة", order: "أمر الصرف" };
+  function attKindLabel(a) { return a && a.kind === "order" ? "📝 أمر صرف" : "🧾 فاتورة"; }
+  async function uploadInvoice(file, month, txId, kind) {
+    kind = kind === "order" ? "order" : "invoice";
     if (!isAdmin || !file) return false;
     if (!/^image\/|application\/pdf/.test(file.type)) { alert("الملف يجب أن يكون صورة أو PDF."); return false; }
     const f = await shrinkImage(file);
     if (f.size > 9 * 1024 * 1024) { alert("حجم الملف أكبر من 9 ميجابايت."); return false; }
     const t = txByRef(month, txId);
     try {
-      const out = await bkCall({ action: "upload", name: f.name, mime: f.type, data: await fileToBase64(f), year: activeYear, month, desc: t ? t.desc : "" });
+      const out = await bkCall({ action: "upload", name: (kind === "order" ? "أمر صرف_" : "فاتورة_") + f.name, mime: f.type, data: await fileToBase64(f), year: activeYear, month, desc: t ? t.desc : "" });
       const t2 = txByRef(month, txId);
       if (!t2) return false;
-      t2.att = (t2.att || []).concat([{ id: out.file.id, name: out.file.name, mime: out.file.mime, size: out.file.size, at: new Date().toISOString() }]);
+      t2.att = (t2.att || []).concat([{ id: out.file.id, name: f.name, kind, mime: out.file.mime, size: out.file.size, at: new Date().toISOString() }]);
       portalStore.setItem("shuaibi_tx_1448", "");
       renderMonthlyLedger();
       return true;
@@ -5107,13 +5122,13 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       return false;
     }
   }
-  async function attUploadFromModal(input) {
+  async function attUploadFromModal(input, kind) {
     const file = input.files && input.files[0]; input.value = "";
     if (!file || !attCtx) return;
     const msg = document.getElementById("attMsg");
     msg.style.color = "var(--muted)"; msg.textContent = "⏳ جارٍ رفع الملف...";
-    const ok = await uploadInvoice(file, attCtx.month, attCtx.id);
-    msg.style.color = ok ? "var(--rev-green)" : "#B42318"; msg.textContent = ok ? "✅ تم إرفاق الملف" : "⚠️ لم يتم الرفع";
+    const ok = await uploadInvoice(file, attCtx.month, attCtx.id, kind);
+    msg.style.color = ok ? "var(--rev-green)" : "#B42318"; msg.textContent = ok ? `✅ تم إرفاق ${ATT_KIND[kind === "order" ? "order" : "invoice"]}` : "⚠️ لم يتم الرفع";
     renderAttList();
   }
   async function viewAttachment(i, download) {
@@ -5879,13 +5894,14 @@ ${list.map((t, i) => `<tr><td ${td}>${i + 1}</td><td ${td}>${escHtml(t.hDate || 
 <div class="modal-bg" id="attModal" onclick="if(event.target===this) closeAttModal()">
 <div class="modal-box">
 <div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
-<h3 id="attTitle">📎 الفواتير والإيصالات</h3>
+<h3 id="attTitle">📎 الفواتير وأوامر الصرف</h3>
 <button class="btn-action btn-outline" onclick="closeAttModal()" type="button">✕ إغلاق</button>
 </div>
 <div id="attTxInfo" style="font-size:0.86rem; color:var(--muted); font-weight:700;"></div>
 <div class="att-list" id="attList"></div>
 <div id="attAdminTools" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-<label class="btn-action btn-gold" style="cursor:pointer;">➕ إرفاق ملف<input accept="image/*,application/pdf" onchange="attUploadFromModal(this)" style="display:none;" type="file"/></label>
+<label class="btn-action btn-gold" style="cursor:pointer;">➕ إرفاق فاتورة<input accept="image/*,application/pdf" onchange="attUploadFromModal(this, 'invoice')" style="display:none;" type="file"/></label>
+<label class="btn-action btn-green" style="cursor:pointer;">➕ إرفاق أمر صرف<input accept="image/*,application/pdf" onchange="attUploadFromModal(this, 'order')" style="display:none;" type="file"/></label>
 <span id="attMsg" style="font-size:0.84rem; font-weight:700;"></span>
 </div>
 <div class="att-preview" id="attPreview"></div>
