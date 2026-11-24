@@ -970,7 +970,7 @@
 <textarea class="rec-input" id="setCats" rows="11" style="width:100%; resize:vertical;"></textarea>
 <label style="font-weight:800; font-size:0.85rem; display:block; margin-top:8px;">بنود الإيرادات (بند في كل سطر)</label>
 <textarea class="rec-input" id="setRevCats" rows="11" style="width:100%; resize:vertical;"></textarea>
-<p style="font-size:0.78rem; color:var(--muted); margin:4px 0 0;">ما يُصرف أو يُقبض في حساب الزكاة يُصنَّف «الزكاة» دائماً، وفي حساب الصدقات «الصدقات».</p>
+<p style="font-size:0.78rem; color:var(--muted); margin:4px 0 0;">النقل بين الحسابات يُصنَّف «النقل بين الحسابات» دائماً، وما عداه في حساب الزكاة «الزكاة» وفي حساب الصدقات «الصدقات».</p>
 <label style="font-weight:800; font-size:0.85rem; display:block; margin-top:8px;">المصروف الذي يحتاج اعتماد عضو ثانٍ (ر.س فأكثر)</label>
 <input class="rec-input" id="setApprLimit" min="0" step="100" type="number" style="max-width:180px;"/>
 <p style="font-size:0.78rem; color:var(--muted); margin:4px 0 0;">يُطبّق على المصروفات الجديدة فقط. اكتب 0 لإيقافه.</p>
@@ -5243,18 +5243,22 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // =====================================================================
   // Settings (categories, budgets, approval limit, receipt counter, monthly reports)
   // =====================================================================
-  const DEFAULT_CATS = ["مساعدات الأسر المحتاجة", "الزكاة", "الصدقات", "المناسبات والفعاليات", "مجلس الأسرة (تشغيل وصيانة)", "مشروع مجلس الأسرة", "الهوية والطباعة والتقنية", "سداد سلف", "رسوم ومصروفات إدارية", "تحويلات بين الحسابات", "أخرى"];
-  const CAT_TRANSFER = "تحويلات بين الحسابات", CAT_PROJECT = "مشروع مجلس الأسرة";
-  const DEFAULT_REV_CATS = ["المساهمات السنوية", "الدعم والتبرعات", "الزكاة", "الصدقات", "رسوم الفعاليات والاشتراكات", "مبيعات الكتاب والمشجرة", "إيرادات التطبيق", "المبادرات", "السلف المستلمة", "مشروع مجلس الأسرة", "تحويلات بين الحسابات", "أخرى"];
-  const CAT_RENAME = { "الزكاة المصروفة": "الزكاة", "الصدقات المصروفة": "الصدقات" };
+  const DEFAULT_CATS = ["مساعدات الأسر المحتاجة", "الزكاة", "الصدقات", "المناسبات والفعاليات", "مجلس الأسرة (تشغيل وصيانة)", "مشروع مجلس الأسرة", "الهوية والطباعة والتقنية", "سداد سلف", "رسوم ومصروفات إدارية", "النقل بين الحسابات", "أخرى"];
+  const CAT_TRANSFER = "النقل بين الحسابات", CAT_PROJECT = "مشروع مجلس الأسرة";
+  const DEFAULT_REV_CATS = ["المساهمات السنوية", "الدعم والتبرعات", "الزكاة", "الصدقات", "رسوم الفعاليات والاشتراكات", "مبيعات الكتاب والمشجرة", "إيرادات التطبيق", "المبادرات", "السلف المستلمة", "مشروع مجلس الأسرة", "النقل بين الحسابات", "أخرى"];
+  const CAT_RENAME = { "الزكاة المصروفة": "الزكاة", "الصدقات المصروفة": "الصدقات", "تحويلات بين الحسابات": "النقل بين الحسابات" };
   const fixCat = c => CAT_RENAME[c] || c;
-  function forcedCat(t) { const a = String(t.account || ""); return a === "الزكاة" ? "الزكاة" : a === "الصدقات" ? "الصدقات" : ""; }
+  function isTransferTx(t) { const x = normAr((t.type || "") + " " + (t.desc || "")); return /تحويل|نقل/.test(x) && /حساب/.test(x); }
+  function forcedCat(t) {
+    if (isTransferTx(t)) return CAT_TRANSFER;
+    const a = String(t.account || ""); return a === "الزكاة" ? "الزكاة" : a === "الصدقات" ? "الصدقات" : "";
+  }
   let portalSettings = {};
   function S() {
     const s = portalSettings || {};
     return {
       cats: Array.isArray(s.cats) && s.cats.length ? [...new Set(s.cats.map(fixCat))] : DEFAULT_CATS,
-      revCats: Array.isArray(s.revCats) && s.revCats.length ? s.revCats : DEFAULT_REV_CATS,
+      revCats: Array.isArray(s.revCats) && s.revCats.length ? [...new Set(s.revCats.map(fixCat))] : DEFAULT_REV_CATS,
       budgets: s.budgets || {},
       approvalLimit: s.approvalLimit != null ? Number(s.approvalLimit) : 5000,
       apprFrom: s.apprFrom || "",
@@ -5304,7 +5308,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (/سلفه/.test(ty)) return "السلف المستلمة";
     return "أخرى";
   }
-  function revCatOf(t) { return forcedCat(t) || t.rcat || guessRevCat(t); }
+  function revCatOf(t) { return forcedCat(t) || (t.rcat ? fixCat(t.rcat) : guessRevCat(t)); }
   function revCatOptions(sel) { return S().revCats.map(c => `<option value="${escHtml(c)}"${c === sel ? " selected" : ""}>${escHtml(c)}</option>`).join(""); }
   function setTxRcat(month, idx, val) {
     const t = (txData[month] || [])[idx];
@@ -5327,7 +5331,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const rows = Object.keys(by).filter(c => c !== CAT_TRANSFER && (showProj || c !== CAT_PROJECT)).map(c => ({ c, a: by[c] })).sort((x, y) => y.a - x.a);
     const total = rows.reduce((s, r) => s + r.a, 0), max = Math.max(1, ...rows.map(r => r.a));
     const note = document.getElementById("revCatChartNote");
-    if (note) note.textContent = `إجمالي الإيرادات المعروضة: ${fmtNum(total)} ر.س — لا تشمل الأرصدة الافتتاحية` + (!showProj && by[CAT_PROJECT] ? ` ولا مشروع مجلس الأسرة (${fmtNum(by[CAT_PROJECT])} ر.س)` : "") + (by[CAT_TRANSFER] ? ` ولا التحويلات بين الحسابات (${fmtNum(by[CAT_TRANSFER])} ر.س)` : "");
+    if (note) note.textContent = `إجمالي الإيرادات المعروضة: ${fmtNum(total)} ر.س — لا تشمل الأرصدة الافتتاحية` + (!showProj && by[CAT_PROJECT] ? ` ولا مشروع مجلس الأسرة (${fmtNum(by[CAT_PROJECT])} ر.س)` : "") + (by[CAT_TRANSFER] ? ` ولا النقل بين الحسابات (${fmtNum(by[CAT_TRANSFER])} ر.س)` : "");
     box.innerHTML = rows.length ? rows.map(r => `<div class="cat-row"><div class="cat-name">${escHtml(r.c)}</div>
       <div class="cat-track"><div class="cat-fill ok" style="width:${Math.max(0.6, r.a / max * 100).toFixed(2)}%"></div></div>
       <div class="cat-val">${fmtNum(r.a)} <small>(${total ? (r.a / total * 100).toFixed(1) : "0.0"}%)</small></div></div>`).join("")
@@ -5361,7 +5365,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const note = document.getElementById("catChartNote");
     if (note) {
       const proj = by[CAT_PROJECT] || 0, trn = by[CAT_TRANSFER] || 0;
-      note.textContent = `إجمالي المصروفات المعروضة: ${fmtNum(total)} ر.س` + (!showProj && proj ? ` — لا يشمل مشروع مجلس الأسرة (${fmtNum(proj)} ر.س)` : "") + (trn ? ` — التحويلات بين الحسابات (${fmtNum(trn)} ر.س) غير محسوبة لأنها ليست صرفاً فعلياً` : "");
+      note.textContent = `إجمالي المصروفات المعروضة: ${fmtNum(total)} ر.س` + (!showProj && proj ? ` — لا يشمل مشروع مجلس الأسرة (${fmtNum(proj)} ر.س)` : "") + (trn ? ` — النقل بين الحسابات (${fmtNum(trn)} ر.س) غير محسوبة لأنها ليست صرفاً فعلياً` : "");
     }
     if (!rows.length) { box.innerHTML = '<div style="color:var(--muted); padding:10px;">لا توجد مصروفات مسجلة بعد لهذه السنة.</div>'; return; }
     const warn = [];
@@ -5437,7 +5441,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         ${vals.map((v, i) => `<div class="yc-v"><span>${ys[i].y}هـ</span><span>${na(v, i, label) ? '<span style="color:var(--muted);">غير مسجّل</span>' : fmtV(v, kind)}</span></div>`).join("")}</div>`;
     }).join("");
     box.innerHTML = `<div class="yc-cards">${cards}</div><div class="table-wrap yc-table"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>
-      <p style="font-size:0.8rem; color:var(--muted); margin:8px 0 0;">التغير محسوب بين آخر سنتين. الإيرادات والمصروفات لا تشمل الأرصدة الافتتاحية ولا التحويلات بين الحسابات. السنة الحالية لم تكتمل بعد.</p>`;
+      <p style="font-size:0.8rem; color:var(--muted); margin:8px 0 0;">التغير محسوب بين آخر سنتين. الإيرادات والمصروفات لا تشمل الأرصدة الافتتاحية ولا النقل بين الحسابات. السنة الحالية لم تكتمل بعد.</p>`;
   }
 
   // ---- 6. Branch participation ----
