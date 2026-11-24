@@ -2335,7 +2335,7 @@
   function setAdminState(flag) {
     isAdmin = !!flag;
     if (!isAdmin) portalAdminPin = "";
-    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); setTimeout(autoMonthlyReport, 2500); }, 100); }
+    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); initTxFormDate(); setTimeout(autoMonthlyReport, 2500); }, 100); }
     const panel = document.getElementById("adminPanel");
     const btn = document.getElementById("adminToggleBtn");
     const badge = document.getElementById("roleBadge");
@@ -4218,7 +4218,23 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const hInp = document.getElementById("txHijriDateInput");
     if (gInp && hInp && gInp.value) {
       hInp.value = gregorianToHijri1448(gInp.value);
+      const mi = hijriMonthIndexOf(hInp.value);
+      const sel = document.getElementById("txMonthInput");
+      if (mi >= 0 && sel) sel.value = HIJRI_MONTHS_LIST[mi];
     }
+  }
+  // "1448/06/12" or "12/06/1448" -> 5 (0-based month), -1 if unknown
+  function hijriMonthIndexOf(h) {
+    const p = String(h || "").split(/[\/\-.\s]+/).map(Number);
+    if (p.length !== 3 || p.some(isNaN)) return -1;
+    const m = p[0] > 1000 ? p[1] : p[2] > 1000 ? p[1] : -1;
+    return m >= 1 && m <= 12 ? m - 1 : -1;
+  }
+  function initTxFormDate() {
+    const gInp = document.getElementById("txGregDateInput");
+    if (!gInp) return;
+    if (!gInp.value) gInp.value = new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10);
+    syncHijriFromGregorian();
   }
 
   function onTxMonthOrDateChange() {
@@ -4242,7 +4258,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 
   function handleAddTransaction(e) {
     e.preventDefault();
-    const monthName = document.getElementById("txMonthInput").value;
+    let monthName = document.getElementById("txMonthInput").value;
     const kind = document.getElementById("txKindInput").value;
     const typeVal = document.getElementById("txTypeInput").value;
     const amount = Number(document.getElementById("txAmountInput").value || 0);
@@ -4251,6 +4267,12 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const desc = document.getElementById("txDescInput").value.trim();
 
     if (amount <= 0 || !desc) return false;
+    const hm = hijriMonthIndexOf(hDate);
+    if (hm >= 0 && HIJRI_MONTHS_LIST[hm] !== monthName) {
+      if (!confirm(`التاريخ الهجري ${hDate} يقع في شهر ${HIJRI_MONTHS_LIST[hm]}، لكن الشهر المختار ${monthName}.\n\nاضغط «موافق» للتسجيل في شهر ${HIJRI_MONTHS_LIST[hm]}، أو «إلغاء» للمراجعة.`)) return false;
+      monthName = HIJRI_MONTHS_LIST[hm];
+      document.getElementById("txMonthInput").value = monthName;
+    }
     const catVal = (document.getElementById("txCatInput") || {}).value || "";
     const approver = ((document.getElementById("txApproverInput") || {}).value || "").trim();
     if (kind === "exp" && S().approvalLimit > 0 && amount >= S().approvalLimit && !approver) {
