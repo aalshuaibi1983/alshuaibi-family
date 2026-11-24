@@ -432,13 +432,18 @@
   .acc-mini-row span:first-child { color: var(--muted); font-weight: 600; }
 
   /* Quick Nav */
-  .quick-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .quick-nav { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 20px; }
   .quick-nav a {
+    display: flex; align-items: center; gap: 10px; min-height: 52px;
     text-decoration: none; background: #FFF; color: var(--primary-dark);
-    border: 1px solid var(--border); padding: 6px 14px; border-radius: 999px;
-    font-size: 0.84rem; font-weight: 700; transition: 0.2s;
+    border: 1px solid var(--border); border-inline-start: 4px solid var(--gold); padding: 8px 12px; border-radius: 12px;
+    font-size: 0.86rem; font-weight: 800; line-height: 1.3; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
-  .quick-nav a:hover { background: var(--primary); color: #FFF; }
+  .quick-nav .qn-ic { flex: 0 0 32px; height: 32px; display: grid; place-items: center; border-radius: 9px; background: #F4F8F4; font-size: 1.05rem; }
+  .quick-nav .qn-tx { flex: 1; }
+  .quick-nav a:hover { background: var(--primary); color: #FFF; border-inline-start-color: var(--gold-light); }
+  .quick-nav a:hover .qn-ic { background: rgba(255,255,255,0.15); }
+  @media (max-width: 900px) { .quick-nav { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .quick-nav a { min-height: 48px; padding: 7px 10px; font-size: 0.84rem; } }
 
   /* Charts Grid */
   .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 20px; margin-bottom: 24px; }
@@ -1095,6 +1100,19 @@
 <div class="install-bar" id="installBar"><span id="installTxt" style="flex:1;"></span>
 <button class="btn-action btn-gold" id="installBtn" onclick="doInstall()" type="button">📲 تثبيت</button>
 <button class="btn-action btn-outline" onclick="hideInstallBar()" type="button">لاحقاً</button></div>
+<!-- Quick Navigation -->
+<nav class="quick-nav" aria-label="التنقل السريع">
+<a href="#sec-kpis"><span class="qn-ic">📌</span><span class="qn-tx">المؤشرات المالية</span></a>
+<a href="#sec-accounts"><span class="qn-ic">🏦</span><span class="qn-tx">أرصدة الحسابات</span></a>
+<a href="#sec-acc-detail"><span class="qn-ic">🔎</span><span class="qn-tx">تفصيل الحسابات</span></a>
+<a href="#sec-charts"><span class="qn-ic">📈</span><span class="qn-tx">الرسوم البيانية</span></a>
+<a href="#sec-cats"><span class="qn-ic">📤</span><span class="qn-tx">المصروفات بالبنود</span></a>
+<a href="#sec-revcats"><span class="qn-ic">📥</span><span class="qn-tx">الإيرادات بالبنود</span></a>
+<a href="#sec-years"><span class="qn-ic">📊</span><span class="qn-tx">مقارنة السنوات</span></a>
+<a href="#sec-months"><span class="qn-ic">🗓️</span><span class="qn-tx">حركة الأشهر</span></a>
+<a href="#sec-branches"><span class="qn-ic">👥</span><span class="qn-tx">مشاركة الفروع</span></a>
+<a href="javascript:void(0)" onclick="switchView('ledger')"><span class="qn-ic">📝</span><span class="qn-tx">كشف الحركات</span></a>
+</nav>
 <!-- Contributors & Supporters Highlight Cards ABOVE Financial KPIs -->
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:16px; margin-bottom:24px;">
 <!-- Card 1: Contributors Highlight -->
@@ -1125,19 +1143,6 @@
 </div>
 <button class="btn-goto-contrib" onclick="switchView('supporters')">🌟 الدخول إلى صفحة الداعمين ←</button>
 </div>
-</div>
-<!-- Quick Navigation -->
-<div class="quick-nav">
-<a href="#sec-kpis">📌 ملخص المؤشرات المالية</a>
-<a href="#sec-accounts">🏦 أرصدة الحسابات البنكية</a>
-<a href="#sec-acc-detail">📂 تفصيل كل حساب</a>
-<a href="#sec-charts">📈 الرسوم البيانية</a>
-<a href="#sec-cats">📂 المصروفات حسب البند</a>
-<a href="#sec-revcats">📥 الإيرادات حسب البند</a>
-<a href="#sec-years">📊 مقارنة السنوات</a>
-<a href="#sec-branches">👥 مشاركة الفروع</a>
-<a href="#sec-months">🗓️ ملخص حركة الأشهر (<span class="yrTxt">1448</span>هـ)</a>
-<a href="javascript:void(0)" onclick="switchView('ledger')">📝 كشف الإيرادات والمصروفات الشهرية</a>
 </div>
 <!-- Financial KPIs -->
 <div class="section-card" id="sec-kpis">
@@ -1229,12 +1234,6 @@
 <div class="section-title"><span>📊 مقارنة السنوات المالية</span></div>
 <div id="yearsCompareBody"></div>
 </div>
-<!-- Branch participation -->
-<div class="section-card" id="sec-branches">
-<div class="section-title"><span>👥 نسبة مشاركة الفروع في المساهمة — <span class="yrTxt">1448</span>هـ</span>
-<span style="font-size:0.8rem; color:var(--muted);">المساهمون من الرجال إلى الملزمين في كل فرع</span></div>
-<div id="branchPctBody"></div>
-</div>
 <!-- Monthly Summary Table -->
 <div class="section-card" id="sec-months">
 <div class="section-title">
@@ -1270,6 +1269,12 @@
 </table>
 </div>
 <div class="months-m" id="monthsMobile"></div>
+</div>
+<!-- Branch participation -->
+<div class="section-card" id="sec-branches">
+<div class="section-title"><span>👥 نسبة مشاركة الفروع في المساهمة — <span class="yrTxt">1448</span>هـ</span>
+<span style="font-size:0.8rem; color:var(--muted);">المساهمون من الرجال إلى الملزمين في كل فرع</span></div>
+<div id="branchPctBody"></div>
 </div>
 </div>
 <!-- VIEW 1B: STANDALONE MONTHLY REVENUE & EXPENSE LEDGER PAGE -->
@@ -5916,7 +5921,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (!k || !fv) return;
     if (!kpiHome) { kpiHome = document.createComment("kpi-home"); k.parentNode.insertBefore(kpiHome, k); }
     if (isMobileView()) {
-      const anchor = document.getElementById("installBar") || fv.querySelector(".page-updated");
+      const anchor = fv.querySelector(".quick-nav") || document.getElementById("installBar") || fv.querySelector(".page-updated");
       anchor.parentNode.insertBefore(k, anchor.nextSibling);
       const acc = document.getElementById("sec-accounts"); if (acc) k.parentNode.insertBefore(acc, k.nextSibling);
     } else {
