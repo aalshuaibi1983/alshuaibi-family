@@ -5489,40 +5489,79 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     } catch (e) { return null; }
   }
   function monthReportHtml(year, month) {
-    const src = portalYearSource(year);
-    const list = ((src && src.txData) || {})[month] || [];
-    const accs = {}, cats = {};
-    let rev = 0, exp = 0;
-    list.forEach(t => {
-      const a = t.account || "—"; accs[a] = accs[a] || { r: 0, e: 0 };
-      accs[a].r += Number(t.rev || 0); accs[a].e += Number(t.exp || 0);
-      rev += Number(t.rev || 0); exp += Number(t.exp || 0);
-      if (Number(t.exp) > 0) { const c = catOf(t); cats[c] = (cats[c] || 0) + Number(t.exp); }
-    });
-    const bal = src && src.finData && src.finData.kpis ? src.finData.kpis.netBalance : null;
-    const td = 'style="border:1px solid #cfd8cf;padding:6px 8px;text-align:center;"', th = 'style="border:1px solid #cfd8cf;padding:6px 8px;background:#1E3821;color:#fff;"';
-    const n = v => fmtNum(v);
-    return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير ${month} ${year}</title></head>
-<body style="font-family:Arial,Tahoma,sans-serif;direction:rtl;text-align:right;color:#1E3821;margin:24px;">
-<table style="width:100%;border-collapse:collapse;"><tr><td style="width:90px;"><img src="${LOGO_SRC}" style="width:80px;"/></td>
-<td><div style="font-size:20px;font-weight:bold;">أسرة الشعيبي بالأحساء — مجلس الإدارة</div><div style="font-size:16px;color:#8A6A00;font-weight:bold;">التقرير المالي الشهري — شهر ${month} ${year}هـ</div>
-<div style="font-size:11px;color:#5C6B5E;">أُعدّ تلقائياً من بوابة الأسرة بتاريخ ${formatGregorianToday()}</div></td></tr></table>
-<hr style="border:0;border-top:2px solid #C9A227;margin:10px 0 14px;"/>
-<table style="width:100%;border-collapse:collapse;margin-bottom:14px;"><tr>
-<td ${td}><div style="font-size:11px;">إيرادات الشهر</div><b style="color:#1E7B45;font-size:16px;">${n(rev)} ر.س</b></td>
-<td ${td}><div style="font-size:11px;">مصروفات الشهر</div><b style="color:#B42318;font-size:16px;">${n(exp)} ر.س</b></td>
-<td ${td}><div style="font-size:11px;">صافي حركة الشهر</div><b style="font-size:16px;">${n(rev - exp)} ر.س</b></td>
-${bal != null ? `<td ${td}><div style="font-size:11px;">إجمالي الأرصدة حالياً</div><b style="font-size:16px;">${n(bal)} ر.س</b></td>` : ""}</tr></table>
-<h3 style="font-size:14px;margin:12px 0 6px;">الحركة حسب الحساب البنكي</h3>
-<table style="width:100%;border-collapse:collapse;"><tr><th ${th}>الحساب</th><th ${th}>إيراد</th><th ${th}>مصروف</th><th ${th}>الصافي</th></tr>
-${Object.keys(accs).map(a => `<tr><td ${td}>${escHtml(a)}</td><td ${td}>${n(accs[a].r)}</td><td ${td}>${n(accs[a].e)}</td><td ${td}>${n(accs[a].r - accs[a].e)}</td></tr>`).join("") || `<tr><td ${td} colspan="4">لا توجد حركات</td></tr>`}</table>
-${Object.keys(cats).length ? `<h3 style="font-size:14px;margin:12px 0 6px;">المصروفات حسب البند</h3><table style="width:100%;border-collapse:collapse;"><tr><th ${th}>البند</th><th ${th}>المبلغ</th><th ${th}>النسبة</th></tr>
-${Object.keys(cats).sort((a, b) => cats[b] - cats[a]).map(c => `<tr><td ${td}>${escHtml(c)}</td><td ${td}>${n(cats[c])}</td><td ${td}>${exp ? (cats[c] / exp * 100).toFixed(1) : 0}%</td></tr>`).join("")}</table>` : ""}
-<h3 style="font-size:14px;margin:12px 0 6px;">تفاصيل الحركات (${list.length})</h3>
-<table style="width:100%;border-collapse:collapse;font-size:11px;"><tr><th ${th}>م</th><th ${th}>التاريخ</th><th ${th}>البيان</th><th ${th}>الحساب</th><th ${th}>إيراد</th><th ${th}>مصروف</th></tr>
-${list.map((t, i) => `<tr><td ${td}>${i + 1}</td><td ${td}>${escHtml(t.hDate || "")}</td><td ${td} style="border:1px solid #cfd8cf;padding:6px 8px;text-align:right;">${escHtml(t.desc || "")}${t.appr ? ` <span style="color:#1E7B45;">(معتمد: ${escHtml(t.appr.by)})</span>` : ""}</td><td ${td}>${escHtml(t.account || "")}</td><td ${td}>${Number(t.rev) ? n(t.rev) : "—"}</td><td ${td}>${Number(t.exp) ? n(t.exp) : "—"}</td></tr>`).join("")}</table>
-<div style="margin-top:28px;font-size:12px;"><table style="width:100%;"><tr><td>أمين الصندوق: .....................</td><td>رئيس مجلس الإدارة: .....................</td></tr></table></div>
-</body></html>`;
+    const src = portalYearSource(year) || {};
+    const tx = src.txData || {};
+    const mi = HIJRI_MONTHS_LIST.indexOf(month);
+    const list = tx[month] || [];
+    let prefs = {}; try { prefs = JSON.parse(localStorage.getItem("shuaibi_official_report_prefs") || "{}"); } catch (e) {}
+    const entity = prefs.ofEntity || "المجلس الإداري لأسرة الشعيبي بالأحساء";
+    // per account: opening (all earlier months + opening entries), receipts, payments, closing
+    const accNames = ((src.finData && src.finData.accounts) || []).map(a => a.name);
+    const acc = {}; const A = n => (acc[n] = acc[n] || { o: 0, r: 0, p: 0 });
+    accNames.forEach(A);
+    HIJRI_MONTHS_LIST.slice(0, mi + 1).forEach((m, k) => (tx[m] || []).forEach(t => {
+      const a = A(t.account || "—"), r = Number(t.rev || 0), e = Number(t.exp || 0);
+      if (k < mi || isOpening(t)) a.o += r - e; else { a.r += r; a.p += e; }
+    }));
+    const names = Object.keys(acc);
+    const tot = names.reduce((x, n) => ({ o: x.o + acc[n].o, r: x.r + acc[n].r, p: x.p + acc[n].p }), { o: 0, r: 0, p: 0 });
+    const cats = {};
+    list.forEach(t => { if (Number(t.exp) > 0 && !isOpening(t)) { const c = catOf(t); cats[c] = (cats[c] || 0) + Number(t.exp); } });
+    const hm = hijriYearMap(year).map || {};
+    const gFrom = hm[`${mi + 1}-1`], gTo = (() => { for (let d = 30; d >= 29; d--) if (hm[`${mi + 1}-${d}`]) return hm[`${mi + 1}-${d}`]; return ""; })();
+    const moves = list.filter(t => !isOpening(t));
+    const fa = v => fmtAcc(v), today = formatGregorianToday();
+    const head = (no, title, sub) => `<table class="mh"><tr><td><h3>${title}</h3><div class="fr-sub">${sub}</div></td><td class="mh-no"><span class="fr-no">${no}</span></td></tr></table>`;
+    const css = OFFICIAL_CSS + `
+      body { margin: 18px; background: #FFF; }
+      .fr .mh { width: 100%; border-collapse: collapse; border-bottom: 2.5px solid #2F5233; margin-bottom: 10px; }
+      .fr .mh td { border: none; padding: 0 0 6px; vertical-align: bottom; }
+      .fr .mh .mh-no { text-align: left; width: 120px; }
+      .fr .mh .fr-no { background: #2F5233; color: #F7E9B8; padding: 3px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800; white-space: nowrap; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .fr .fr-sign { display: block; }
+      .fr .fr-sign table td { border: 1px solid #C9D6CA; height: 110px; vertical-align: top; width: 33%; line-height: 2; }
+      @page { size: A4 portrait; margin: 12mm 10mm; }`;
+    let no = 0; const N = () => `قائمة (${++no})`;
+    let h = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>التقرير المالي الشهري — ${month} ${year}هـ</title><style>${css}</style></head><body><div class="fr">`;
+    h += `<div class="fr-cover">
+      <img src="${LOGO_SRC}" alt="الشعار">
+      <h1>${hEsc(entity)}</h1>
+      <h2>التقرير المالي الشهري<br>لشهر ${month} ${year}هـ</h2>
+      <div class="fr-meta">
+        <div><strong>الفترة:</strong> ${gFrom && gTo ? `من ${fmtDateAr(gFrom)}م إلى ${fmtDateAr(gTo)}م` : `شهر ${month} ${year}هـ`}</div>
+        <div><strong>العملة:</strong> ريال سعودي (ر.س) — <strong>الأساس المحاسبي:</strong> الأساس النقدي</div>
+        <div><strong>عدد الحركات خلال الشهر:</strong> ${fmtInt(moves.length)} حركة — <strong>آخر تحديث للبيانات:</strong> ${hEsc(src.lastUpdatedStr || lastUpdatedStr)}</div>
+        <div><strong>تاريخ إصدار التقرير:</strong> ${today}</div>
+      </div>
+      <div><span class="fr-status draft">تقرير شهري — غير مدقق</span></div>
+    </div>`;
+    h += `<div class="fr-section">${head("ملخص", "الملخص التنفيذي", `أبرز الأرقام لشهر ${month} ${year}هـ`)}
+      <table><tbody>
+        <tr><td>الرصيد في بداية الشهر</td><td class="n">${fa(tot.o)}</td></tr>
+        <tr><td>إجمالي المقبوضات خلال الشهر</td><td class="n">${fa(tot.r)}</td></tr>
+        <tr><td>إجمالي المدفوعات خلال الشهر</td><td class="n">${fa(tot.p)}</td></tr>
+        <tr><td>فائض / (عجز) المقبوضات عن المدفوعات</td><td class="n">${fa(tot.r - tot.p)}</td></tr>
+        <tr class="tot"><td>الرصيد في نهاية الشهر</td><td class="n">${fa(tot.o + tot.r - tot.p)}</td></tr>
+      </tbody></table></div>`;
+    h += `<div class="fr-section">${head(N(), "قائمة الأرصدة النقدية بالحسابات", `شهر ${month} ${year}هـ — بالريال السعودي`)}
+      <table><thead><tr><th>م</th><th>الحساب</th><th>الرصيد في بداية الشهر</th><th>المقبوضات</th><th>المدفوعات</th><th>الرصيد في نهاية الشهر</th></tr></thead><tbody>
+      ${names.map((n, k) => `<tr><td class="c">${k + 1}</td><td>${hEsc(n)}</td><td class="n">${fa(acc[n].o)}</td><td class="n">${fa(acc[n].r)}</td><td class="n">${fa(acc[n].p)}</td><td class="n"><strong>${fa(acc[n].o + acc[n].r - acc[n].p)}</strong></td></tr>`).join("")}
+      <tr class="tot"><td colspan="2">الإجمالي</td><td class="n">${fa(tot.o)}</td><td class="n">${fa(tot.r)}</td><td class="n">${fa(tot.p)}</td><td class="n">${fa(tot.o + tot.r - tot.p)}</td></tr></tbody></table></div>`;
+    const catKeys = Object.keys(cats).sort((a, b) => cats[b] - cats[a]), catTot = catKeys.reduce((x, c) => x + cats[c], 0);
+    if (catKeys.length) h += `<div class="fr-section">${head(N(), "المدفوعات حسب البند", `شهر ${month} ${year}هـ`)}
+      <table><thead><tr><th>البند</th><th>المبلغ</th><th>النسبة</th></tr></thead><tbody>
+      ${catKeys.map(c => `<tr><td>${hEsc(c)}</td><td class="n">${fa(cats[c])}</td><td class="c">${catTot ? (cats[c] / catTot * 100).toFixed(1) : 0}%</td></tr>`).join("")}
+      <tr class="tot"><td>الإجمالي</td><td class="n">${fa(catTot)}</td><td class="c">100%</td></tr></tbody></table></div>`;
+    h += `<div class="fr-section">${head(N(), "كشف حركات الشهر", `${fmtInt(moves.length)} حركة — بالترتيب الوارد في السجل`)}
+      <table><thead><tr><th>م</th><th>التاريخ</th><th>البيان</th><th>الحساب</th><th>مقبوضات</th><th>مدفوعات</th></tr></thead><tbody>
+      ${moves.map((t, k) => `<tr><td class="c">${k + 1}</td><td class="c">${hEsc(t.hDate || "")}</td><td>${hEsc(t.desc || "")}${t.appr ? ` <span style="color:#1E7B45; font-size:0.78rem;">(معتمد: ${hEsc(t.appr.by)})</span>` : ""}${t.rcpt ? ` <span style="color:#4A554B; font-size:0.78rem;">(سند ${hEsc(t.rcpt)})</span>` : ""}</td><td>${hEsc(t.account || "")}</td><td class="n">${fa(t.rev)}</td><td class="n">${fa(t.exp)}</td></tr>`).join("") || `<tr><td colspan="6" class="c">لا توجد حركات</td></tr>`}
+      <tr class="tot"><td colspan="4">الإجمالي</td><td class="n">${fa(tot.r)}</td><td class="n">${fa(tot.p)}</td></tr></tbody></table></div>`;
+    h += `<div class="fr-section fr-sign"><table><tr>
+      <td><strong>أعدّه</strong>${hEsc(prefs.ofPreparer || "")}<br>${hEsc(prefs.ofPreparerRole || "أمين الصندوق")}<br>التوقيع:</td>
+      <td><strong>اعتمده</strong>${hEsc(prefs.ofApprover || "")}<br>${hEsc(prefs.ofApproverRole || "رئيس مجلس الإدارة")}<br>التوقيع:</td>
+      <td><strong>ملاحظات</strong></td></tr></table></div>`;
+    h += `<div class="fr-foot">${hEsc(entity)} — التقرير المالي الشهري لشهر ${month} ${year}هـ — صدر بتاريخ ${today}</div></div></body></html>`;
+    return h;
   }
   function renderReportsBox() {
     const sel = document.getElementById("repMonth"), list = document.getElementById("repList");
