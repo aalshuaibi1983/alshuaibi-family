@@ -257,6 +257,7 @@
   .cat-bud.near { background:#FFF6E0; color:#8A6A00; } .cat-bud.over { background:#FEF2F2; color:#B42318; }
   .cat-chip { display:inline-block; margin-top:4px; padding:1px 8px; border-radius:6px; font-size:0.72rem; font-weight:700; background:#FFF8E1; color:#8A6A00; border:1px solid #F0DFA6; }
   select.cat-chip { font-family:inherit; cursor:pointer; max-width:190px; }
+  .cat-chip.rcat { background:#EBF9F1; color:#1E7B45; border-color:#B7E4C7; }
   .appr-ok { display:inline-block; margin-top:3px; font-size:0.74rem; font-weight:800; color:#1E7B45; }
   .appr-need { margin-top:3px; padding:2px 8px; font-size:0.74rem; font-weight:800; color:#8A6A00; background:#FFF6E0; border:1px solid #E8C766; border-radius:6px; cursor:pointer; font-family:inherit; }
   .att-pub-btn { margin-top:3px; padding:2px 8px; font-size:0.74rem; font-weight:800; color:var(--primary-dark); background:#EEF3EE; border:1px solid #C9D6C9; border-radius:6px; cursor:pointer; font-family:inherit; }
@@ -965,8 +966,11 @@
 <p>البنود تظهر في نموذج المصروف وفي الرسم البياني. الموازنة لكل بند في السنة <strong id="setBudgetYear"></strong>هـ (اتركها فارغة إن لم تُحدد).</p>
 <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px;">
 <div>
-<label style="font-weight:800; font-size:0.85rem;">البنود (بند في كل سطر)</label>
+<label style="font-weight:800; font-size:0.85rem;">بنود المصروفات (بند في كل سطر)</label>
 <textarea class="rec-input" id="setCats" rows="11" style="width:100%; resize:vertical;"></textarea>
+<label style="font-weight:800; font-size:0.85rem; display:block; margin-top:8px;">بنود الإيرادات (بند في كل سطر)</label>
+<textarea class="rec-input" id="setRevCats" rows="11" style="width:100%; resize:vertical;"></textarea>
+<p style="font-size:0.78rem; color:var(--muted); margin:4px 0 0;">ما يُصرف أو يُقبض في حساب الزكاة يُصنَّف «الزكاة» دائماً، وفي حساب الصدقات «الصدقات».</p>
 <label style="font-weight:800; font-size:0.85rem; display:block; margin-top:8px;">المصروف الذي يحتاج اعتماد عضو ثانٍ (ر.س فأكثر)</label>
 <input class="rec-input" id="setApprLimit" min="0" step="100" type="number" style="max-width:180px;"/>
 <p style="font-size:0.78rem; color:var(--muted); margin:4px 0 0;">يُطبّق على المصروفات الجديدة فقط. اكتب 0 لإيقافه.</p>
@@ -1129,6 +1133,7 @@
 <a href="#sec-acc-detail">📂 تفصيل كل حساب</a>
 <a href="#sec-charts">📈 الرسوم البيانية</a>
 <a href="#sec-cats">📂 المصروفات حسب البند</a>
+<a href="#sec-revcats">📥 الإيرادات حسب البند</a>
 <a href="#sec-years">📊 مقارنة السنوات</a>
 <a href="#sec-branches">👥 مشاركة الفروع</a>
 <a href="#sec-months">🗓️ ملخص حركة الأشهر (<span class="yrTxt">1448</span>هـ)</a>
@@ -1209,6 +1214,15 @@
 <div class="warn-box" id="catBudgetWarn"></div>
 <div id="catChartBody"></div>
 <p id="catChartNote" style="font-size:0.8rem; color:var(--muted); margin:8px 0 0;"></p>
+</div>
+<!-- Revenues by category -->
+<div class="section-card" id="sec-revcats">
+<div class="section-title">
+<span>📥 الإيرادات حسب البند — <span class="yrTxt">1448</span>هـ</span>
+<label style="font-size:0.84rem; font-weight:600; color:var(--muted); cursor:pointer;"><input id="revCatShowProject" onchange="renderRevCatChart()" type="checkbox"/> إظهار مشروع مجلس الأسرة</label>
+</div>
+<div id="revCatChartBody"></div>
+<p id="revCatChartNote" style="font-size:0.8rem; color:var(--muted); margin:8px 0 0;"></p>
 </div>
 <!-- Years comparison -->
 <div class="section-card" id="sec-years">
@@ -1305,7 +1319,7 @@
 </div>
 <div class="tx-field">
 <label>التصنيف / البند</label>
-<select id="txTypeInput" onchange="updateAutoAccountPreview()">
+<select id="txTypeInput" onchange="updateAutoAccountPreview(); updateTxFormExtras()">
 <option value="مساهمة">مساهمة</option>
 <option value="دعم">دعم</option>
 <option value="ايراد">ايراد</option>
@@ -1336,7 +1350,7 @@
 <input id="txDescInput" placeholder="اكتب وصف العملية المالية..." required="" type="text"/>
 </div>
 <div class="tx-field" id="txCatBox" style="display:none;">
-<label>📂 بند المصروف</label>
+<label id="txCatLabel">📂 بند المصروف</label>
 <select id="txCatInput"></select>
 </div>
 <div class="tx-field" id="txApprBox" style="display:none; grid-column: span 2;">
@@ -3258,7 +3272,7 @@ ${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.open
     accNames.forEach(ensureAcc);
     const recTypes = {}, payTypes = {};
     const addType = (store, t, a, amt) => {
-      const typ = String(t.type || "").trim() || "أخرى";
+      const typ = store === recTypes ? revCatOf(t) : catOf(t);
       const k = typ + "||" + a;
       (store[k] = store[k] || { type: typ, account: a, amount: 0, count: 0 });
       store[k].amount += amt; store[k].count++;
@@ -3534,7 +3548,7 @@ ${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.open
     const section = (title, list, total, label) => {
       rows.push([C(title, XS.SECTION), C("", XS.SECTION), C("", XS.SECTION), C("", XS.SECTION)]);
       merges.push(`A${rows.length}:D${rows.length}`);
-      rows.push(["البند (نوع العملية)", "الحساب", "عدد الحركات", "المبلغ"].map(h => C(h, XS.HEAD)));
+      rows.push(["البند", "الحساب", "عدد الحركات", "المبلغ"].map(h => C(h, XS.HEAD)));
       const first = rows.length + 1;
       list.forEach(x => rows.push([C(x.type, XS.TEXT), C(x.account, XS.TEXT), C(x.count, XS.INT), C(x.amount, XS.NUM)]));
       if (!list.length) rows.push([C("لا توجد", XS.TEXT), C("", XS.TEXT), C(0, XS.INT), C(0, XS.NUM)]);
@@ -3748,7 +3762,7 @@ ${sheets.map((s, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.open
       <tbody>${accRows}<tr class="tot"><td colspan="2">الإجمالي</td><td class="n">${fmtAcc(st.tot.opening)}</td><td class="n">${fmtAcc(st.tot.receipts)}</td><td class="n">${fmtAcc(st.tot.payments)}</td>${adjTd(st.tot.adjust)}<td class="n">${fmtAcc(st.tot.closing)}</td></tr></tbody></table>${draftNote}</div>`;
 
     html += `<div class="fr-section">${secHead(N(), "قائمة المقبوضات والمدفوعات", `${L.period} — حسب طبيعة العملية`)}
-      <table><thead><tr><th>البند (نوع العملية)</th><th>الحساب</th><th>عدد الحركات</th><th>المبلغ</th></tr></thead><tbody>
+      <table><thead><tr><th>البند</th><th>الحساب</th><th>عدد الحركات</th><th>المبلغ</th></tr></thead><tbody>
         <tr><td colspan="3"><strong>${L.opening}</strong></td><td class="n"><strong>${fmtAcc(st.tot.opening)}</strong></td></tr>
         <tr class="sec"><td colspan="4">أولاً: المقبوضات</td></tr>${listRows(st.receiptsByType)}
         <tr class="tot"><td colspan="3">إجمالي المقبوضات</td><td class="n">${fmtAcc(st.tot.receipts)}</td></tr>
@@ -4237,7 +4251,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const desc = document.getElementById("txDescInput").value.trim();
 
     if (amount <= 0 || !desc) return false;
-    const catVal = kind === "exp" ? ((document.getElementById("txCatInput") || {}).value || "") : "";
+    const catVal = (document.getElementById("txCatInput") || {}).value || "";
     const approver = ((document.getElementById("txApproverInput") || {}).value || "").trim();
     if (kind === "exp" && S().approvalLimit > 0 && amount >= S().approvalLimit && !approver) {
       alert(`هذا المصروف ${fmtNum(amount)} ر.س يحتاج اسم عضو المجلس المعتمِد.`);
@@ -4259,7 +4273,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       account: linkedAccount
     });
     const newTx = txData[monthName][txData[monthName].length - 1];
-    if (catVal) newTx.cat = catVal;
+    if (catVal && !forcedCat(newTx)) { if (kind === "exp") newTx.cat = catVal; else newTx.rcat = catVal; }
     if (kind === "exp" && approver && S().approvalLimit > 0 && amount >= S().approvalLimit) newTx.appr = { by: approver, at: new Date().toISOString().slice(0, 10) };
     if (kind === "exp" && !S().apprFrom) saveSettings({ apprFrom: new Date().toISOString().slice(0, 10) });
 
@@ -4363,8 +4377,13 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       const invN = Array.isArray(tx.att) ? tx.att.filter(a => a.kind !== "order").length : 0, ordN = attN - invN;
       const rcptBtn = r > 0 && !isOpening(tx) ? `<button type="button" class="btn-action btn-outline att-btn" title="سند قبض${tx.rcpt ? " " + tx.rcpt : ""}" onclick="openReceipt('${selectedLedgerMonth}', ${origIdx})">🧾</button> ` : "";
       let extra = "";
+      if (r > 0 && !isOpening(tx)) {
+        extra += isAdmin && !forcedCat(tx)
+          ? `<br/><select class="cat-chip rcat" title="بند الإيراد" onchange="setTxRcat('${selectedLedgerMonth}', ${origIdx}, this.value)">${revCatOptions(revCatOf(tx))}</select>`
+          : `<br/><span class="cat-chip rcat">${escHtml(revCatOf(tx))}</span>`;
+      }
       if (e > 0) {
-        extra += isAdmin
+        extra += isAdmin && !forcedCat(tx)
           ? `<br/><select class="cat-chip" title="بند المصروف" onchange="setTxCat('${selectedLedgerMonth}', ${origIdx}, this.value)">${catOptions(catOf(tx))}</select>`
           : `<br/><span class="cat-chip">${escHtml(catOf(tx))}</span>`;
         if (tx.appr) extra += ` <span class="appr-ok">✔ معتمد من ${escHtml(tx.appr.by)}</span>`;
@@ -4722,6 +4741,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (key === "settings") {
       const o = oldJson ? JSON.parse(oldJson) : {}, n = newVal || {}, out = [];
       if (JSON.stringify(o.cats || null) !== JSON.stringify(n.cats || null)) out.push({ t: now, y: "", p: "settings", d: "تعديل بنود المصروفات" });
+      if (JSON.stringify(o.revCats || null) !== JSON.stringify(n.revCats || null)) out.push({ t: now, y: "", p: "settings", d: "تعديل بنود الإيرادات" });
       Object.keys(n.budgets || {}).forEach(y => { if (JSON.stringify((o.budgets || {})[y]) !== JSON.stringify(n.budgets[y])) out.push({ t: now, y, p: "settings", d: "تعديل الموازنة التقديرية: " + Object.keys(n.budgets[y]).map(c => c + " " + money(n.budgets[y][c])).join("، ") }); });
       if (o.approvalLimit !== n.approvalLimit && n.approvalLimit != null) out.push({ t: now, y: "", p: "settings", d: `حد اعتماد المصروفات: ${money(n.approvalLimit)}` });
       (n.reports || []).filter(r => !(o.reports || []).some(x => x.id === r.id)).forEach(r => out.push({ t: now, y: r.year, p: "settings", d: `حفظ التقرير الشهري لشهر ${r.month}${r.auto ? " (تلقائي)" : ""}` }));
@@ -4759,6 +4779,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         const oa = (o.att || []).length, na = (n.att || []).length;
         if (JSON.stringify(o.att || []) !== JSON.stringify(n.att || [])) diffs.push(na > oa ? ((((n.att || []).slice(-1)[0] || {}).kind === "order") ? "إرفاق أمر صرف" : "إرفاق فاتورة") : na < oa ? "حذف مرفق" : (n.att || []).filter(a => a.pub).length > (o.att || []).filter(a => a.pub).length ? "إظهار الفاتورة للأعضاء" : (n.att || []).filter(a => a.pub).length < (o.att || []).filter(a => a.pub).length ? "إخفاء الفاتورة عن الأعضاء" : "تحديث المرفقات");
         if ((o.cat || "") !== (n.cat || "")) diffs.push(`البند: ${o.cat || catOf(o)} ← ${n.cat}`);
+        if ((o.rcat || "") !== (n.rcat || "")) diffs.push(`بند الإيراد: ${o.rcat || revCatOf(o)} ← ${n.rcat}`);
         if (JSON.stringify(o.appr || null) !== JSON.stringify(n.appr || null) && n.appr) diffs.push(`اعتماد من ${n.appr.by}`);
         if ((o.rcpt || "") !== (n.rcpt || "") && n.rcpt) diffs.push(`إصدار سند قبض ${n.rcpt}`);
         if ((o.payer || "") !== (n.payer || "")) diffs.push(`اسم الدافع: ${n.payer || "—"}`);
@@ -5222,13 +5243,18 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // =====================================================================
   // Settings (categories, budgets, approval limit, receipt counter, monthly reports)
   // =====================================================================
-  const DEFAULT_CATS = ["مساعدات الأسر المحتاجة", "الزكاة المصروفة", "الصدقات المصروفة", "المناسبات والفعاليات", "مجلس الأسرة (تشغيل وصيانة)", "مشروع مجلس الأسرة", "الهوية والطباعة والتقنية", "سداد سلف", "رسوم ومصروفات إدارية", "تحويلات بين الحسابات", "أخرى"];
+  const DEFAULT_CATS = ["مساعدات الأسر المحتاجة", "الزكاة", "الصدقات", "المناسبات والفعاليات", "مجلس الأسرة (تشغيل وصيانة)", "مشروع مجلس الأسرة", "الهوية والطباعة والتقنية", "سداد سلف", "رسوم ومصروفات إدارية", "تحويلات بين الحسابات", "أخرى"];
   const CAT_TRANSFER = "تحويلات بين الحسابات", CAT_PROJECT = "مشروع مجلس الأسرة";
+  const DEFAULT_REV_CATS = ["المساهمات السنوية", "الدعم والتبرعات", "الزكاة", "الصدقات", "رسوم الفعاليات والاشتراكات", "مبيعات الكتاب والمشجرة", "إيرادات التطبيق", "المبادرات", "السلف المستلمة", "مشروع مجلس الأسرة", "تحويلات بين الحسابات", "أخرى"];
+  const CAT_RENAME = { "الزكاة المصروفة": "الزكاة", "الصدقات المصروفة": "الصدقات" };
+  const fixCat = c => CAT_RENAME[c] || c;
+  function forcedCat(t) { const a = String(t.account || ""); return a === "الزكاة" ? "الزكاة" : a === "الصدقات" ? "الصدقات" : ""; }
   let portalSettings = {};
   function S() {
     const s = portalSettings || {};
     return {
-      cats: Array.isArray(s.cats) && s.cats.length ? s.cats : DEFAULT_CATS,
+      cats: Array.isArray(s.cats) && s.cats.length ? [...new Set(s.cats.map(fixCat))] : DEFAULT_CATS,
+      revCats: Array.isArray(s.revCats) && s.revCats.length ? s.revCats : DEFAULT_REV_CATS,
       budgets: s.budgets || {},
       approvalLimit: s.approvalLimit != null ? Number(s.approvalLimit) : 5000,
       apprFrom: s.apprFrom || "",
@@ -5249,10 +5275,9 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // ---- 1. Expense categories ----
   function guessCat(t) {
     const d = normAr(t.desc || ""), acc = String(t.account || "");
+    if (forcedCat(t)) return forcedCat(t);
     if (/تحويل/.test(d) && /حساب/.test(d)) return CAT_TRANSFER;
     if (acc.includes("مشروع") || /مشروع مجلس الاسره/.test(d)) return CAT_PROJECT;
-    if (acc === "الزكاة") return "الزكاة المصروفة";
-    if (acc === "الصدقات") return "الصدقات المصروفة";
     if (/محتاج|مساعده|اعاله|سله غذائيه|تموينات|اثاث لعائله/.test(d)) return "مساعدات الأسر المحتاجة";
     if (/سلفه/.test(d)) return "سداد سلف";
     if (/فعاليه|حفل|لقاء|ملتقي|مخيم|اليوم الوطني|التراثي|ضيافه|عرضه|قاعه|ذبايح|زياره|برومو|تمر|شكولاته|باجات|صوتيات|شاشه|ملتوت/.test(d)) return "المناسبات والفعاليات";
@@ -5261,7 +5286,53 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (/بوابات الدفع|ضريبه|رسوم|توكيل|ملكيه|مساحي/.test(d)) return "رسوم ومصروفات إدارية";
     return "أخرى";
   }
-  function catOf(t) { return t.cat || guessCat(t); }
+  function catOf(t) { return forcedCat(t) || (t.cat ? fixCat(t.cat) : guessCat(t)); }
+  // ---- revenue categories ----
+  function guessRevCat(t) {
+    const d = normAr(t.desc || ""), ty = normAr(t.type || ""), acc = String(t.account || "");
+    if (forcedCat(t)) return forcedCat(t);
+    if (/تحويل/.test(ty + " " + d) && /حساب/.test(d)) return CAT_TRANSFER;
+    if (acc.includes("مشروع")) return CAT_PROJECT;
+    if (/زكاه/.test(ty)) return "الزكاة";
+    if (/صدقه/.test(ty)) return "الصدقات";
+    if (/مساهمه/.test(ty)) return "المساهمات السنوية";
+    if (/دعم/.test(ty)) return "الدعم والتبرعات";
+    if (/رسوم/.test(ty)) return "رسوم الفعاليات والاشتراكات";
+    if (/كتاب|مشجره/.test(ty + " " + d)) return "مبيعات الكتاب والمشجرة";
+    if (/تطبيق/.test(d)) return "إيرادات التطبيق";
+    if (/مبادره/.test(ty + " " + d)) return "المبادرات";
+    if (/سلفه/.test(ty)) return "السلف المستلمة";
+    return "أخرى";
+  }
+  function revCatOf(t) { return forcedCat(t) || t.rcat || guessRevCat(t); }
+  function revCatOptions(sel) { return S().revCats.map(c => `<option value="${escHtml(c)}"${c === sel ? " selected" : ""}>${escHtml(c)}</option>`).join(""); }
+  function setTxRcat(month, idx, val) {
+    const t = (txData[month] || [])[idx];
+    if (!t || !isAdmin) return;
+    t.rcat = val; persistTx(); renderFinanceExtras();
+  }
+  function revenuesByCat(tx) {
+    const out = {};
+    Object.keys(tx || {}).forEach(m => (tx[m] || []).forEach(t => {
+      const r = Number(t.rev || 0); if (r <= 0 || isOpening(t)) return;
+      const c = revCatOf(t); out[c] = (out[c] || 0) + r;
+    }));
+    return out;
+  }
+  function renderRevCatChart() {
+    const box = document.getElementById("revCatChartBody");
+    if (!box) return;
+    const showProj = (document.getElementById("revCatShowProject") || {}).checked;
+    const by = revenuesByCat(txData);
+    const rows = Object.keys(by).filter(c => c !== CAT_TRANSFER && (showProj || c !== CAT_PROJECT)).map(c => ({ c, a: by[c] })).sort((x, y) => y.a - x.a);
+    const total = rows.reduce((s, r) => s + r.a, 0), max = Math.max(1, ...rows.map(r => r.a));
+    const note = document.getElementById("revCatChartNote");
+    if (note) note.textContent = `إجمالي الإيرادات المعروضة: ${fmtNum(total)} ر.س — لا تشمل الأرصدة الافتتاحية` + (!showProj && by[CAT_PROJECT] ? ` ولا مشروع مجلس الأسرة (${fmtNum(by[CAT_PROJECT])} ر.س)` : "") + (by[CAT_TRANSFER] ? ` ولا التحويلات بين الحسابات (${fmtNum(by[CAT_TRANSFER])} ر.س)` : "");
+    box.innerHTML = rows.length ? rows.map(r => `<div class="cat-row"><div class="cat-name">${escHtml(r.c)}</div>
+      <div class="cat-track"><div class="cat-fill ok" style="width:${Math.max(0.6, r.a / max * 100).toFixed(2)}%"></div></div>
+      <div class="cat-val">${fmtNum(r.a)} <small>(${total ? (r.a / total * 100).toFixed(1) : "0.0"}%)</small></div></div>`).join("")
+      : '<div style="color:var(--muted); padding:10px;">لا توجد إيرادات مسجلة بعد لهذه السنة.</div>';
+  }
   function isOpening(t) { return String(t.type || "").includes("افتتاح") || /الرصيد الافتتاحي/.test(t.desc || ""); }
   function catOptions(sel) { return S().cats.map(c => `<option value="${escHtml(c)}"${c === sel ? " selected" : ""}>${escHtml(c)}</option>`).join(""); }
   function setTxCat(month, idx, val) {
@@ -5389,7 +5460,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   }
 
   function renderFinanceExtras() {
-    try { renderCatChart(); renderYearsCompare(); renderBranchPct(); if (isAdmin) renderSettingsBox(); } catch (e) { console.warn("extras", e); }
+    try { renderCatChart(); renderRevCatChart(); renderYearsCompare(); renderBranchPct(); if (isAdmin) renderSettingsBox(); } catch (e) { console.warn("extras", e); }
   }
 
   // ---- Settings admin box (categories, budgets, approval limit) ----
@@ -5397,6 +5468,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const ta = document.getElementById("setCats"), tb = document.getElementById("setBudgetBody"), lim = document.getElementById("setApprLimit");
     if (!ta || !isAdmin) return;
     if (document.activeElement !== ta) ta.value = S().cats.join("\n");
+    const rta = document.getElementById("setRevCats"); if (rta && document.activeElement !== rta) rta.value = S().revCats.join("\n");
     if (document.activeElement !== lim) lim.value = S().approvalLimit;
     document.getElementById("setBudgetYear").textContent = activeYear;
     const bud = S().budgets[activeYear] || {}, by = expensesByCat(txData);
@@ -5406,11 +5478,14 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const cats = [...new Set(document.getElementById("setCats").value.split("\n").map(x => x.trim()).filter(Boolean))];
     if (!cats.includes("أخرى")) cats.push("أخرى");
     if (!cats.includes(CAT_TRANSFER)) cats.push(CAT_TRANSFER);
+    const revCats = [...new Set((document.getElementById("setRevCats").value || "").split("\n").map(x => x.trim()).filter(Boolean))];
+    ["الزكاة", "الصدقات", CAT_TRANSFER, "أخرى"].forEach(c => { if (!revCats.includes(c)) revCats.push(c); });
+    ["الزكاة", "الصدقات"].forEach(c => { if (!cats.includes(c)) cats.unshift(c); });
     const bud = {};
     document.querySelectorAll("#setBudgetBody input[data-cat]").forEach(i => { const v = Number(i.value); if (i.value !== "" && v >= 0) bud[i.dataset.cat] = v; });
     const budgets = Object.assign({}, S().budgets, { [activeYear]: bud });
     const lim = Math.max(0, Number(document.getElementById("setApprLimit").value || 0));
-    saveSettings({ cats, budgets, approvalLimit: lim, apprFrom: S().apprFrom || new Date().toISOString().slice(0, 10) });
+    saveSettings({ cats, revCats, budgets, approvalLimit: lim, apprFrom: S().apprFrom || new Date().toISOString().slice(0, 10) });
     const m = document.getElementById("setMsg"); m.textContent = "✅ تم الحفظ"; setTimeout(() => { m.textContent = ""; }, 3000);
     renderFinanceExtras(); renderMonthlyLedger();
   }
@@ -5434,9 +5509,11 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const kind = (document.getElementById("txKindInput") || {}).value;
     const amt = Number((document.getElementById("txAmountInput") || {}).value || 0);
     const catBox = document.getElementById("txCatBox"), apBox = document.getElementById("txApprBox");
-    if (catBox) catBox.style.display = kind === "exp" ? "" : "none";
+    const forced = forcedCat({ account: mapTypeToAccount((document.getElementById("txTypeInput") || {}).value) });
+    if (catBox) catBox.style.display = forced ? "none" : "";
     const cs = document.getElementById("txCatInput");
-    if (cs && !cs.options.length) cs.innerHTML = '<option value="">تلقائي حسب البيان</option>' + catOptions("");
+    if (cs && cs.dataset.kind !== kind) { cs.dataset.kind = kind; cs.innerHTML = '<option value="">تلقائي حسب البيان</option>' + (kind === "exp" ? catOptions("") : revCatOptions("")); }
+    const cl = document.getElementById("txCatLabel"); if (cl) cl.textContent = kind === "exp" ? "📂 بند المصروف" : "📂 بند الإيراد";
     const need = kind === "exp" && S().approvalLimit > 0 && amt >= S().approvalLimit;
     if (apBox) { apBox.style.display = need ? "" : "none"; document.getElementById("txApprLabel").textContent = `✍️ اسم عضو المجلس المعتمِد (إلزامي للمصروف من ${fmtNum(S().approvalLimit)} ر.س فأكثر)`; }
     const ai = document.getElementById("txApproverInput"); if (ai) ai.required = need;
@@ -5566,8 +5643,12 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     }));
     const names = Object.keys(acc);
     const tot = names.reduce((x, n) => ({ o: x.o + acc[n].o, r: x.r + acc[n].r, p: x.p + acc[n].p }), { o: 0, r: 0, p: 0 });
-    const cats = {};
-    list.forEach(t => { if (Number(t.exp) > 0 && !isOpening(t)) { const c = catOf(t); cats[c] = (cats[c] || 0) + Number(t.exp); } });
+    const cats = {}, rcats = {};
+    list.forEach(t => {
+      if (isOpening(t)) return;
+      if (Number(t.exp) > 0) { const c = catOf(t); cats[c] = (cats[c] || 0) + Number(t.exp); }
+      if (Number(t.rev) > 0) { const c = revCatOf(t); rcats[c] = (rcats[c] || 0) + Number(t.rev); }
+    });
     const hm = hijriYearMap(year).map || {};
     const gFrom = hm[`${mi + 1}-1`], gTo = (() => { for (let d = 30; d >= 29; d--) if (hm[`${mi + 1}-${d}`]) return hm[`${mi + 1}-${d}`]; return ""; })();
     const moves = list.filter(t => !isOpening(t));
@@ -5608,6 +5689,11 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       <table><thead><tr><th>م</th><th>الحساب</th><th>الرصيد في بداية الشهر</th><th>المقبوضات</th><th>المدفوعات</th><th>الرصيد في نهاية الشهر</th></tr></thead><tbody>
       ${names.map((n, k) => `<tr><td class="c">${k + 1}</td><td>${hEsc(n)}</td><td class="n">${fa(acc[n].o)}</td><td class="n">${fa(acc[n].r)}</td><td class="n">${fa(acc[n].p)}</td><td class="n"><strong>${fa(acc[n].o + acc[n].r - acc[n].p)}</strong></td></tr>`).join("")}
       <tr class="tot"><td colspan="2">الإجمالي</td><td class="n">${fa(tot.o)}</td><td class="n">${fa(tot.r)}</td><td class="n">${fa(tot.p)}</td><td class="n">${fa(tot.o + tot.r - tot.p)}</td></tr></tbody></table></div>`;
+    const rKeys = Object.keys(rcats).sort((a, b) => rcats[b] - rcats[a]), rTot = rKeys.reduce((x, c) => x + rcats[c], 0);
+    if (rKeys.length) h += `<div class="fr-section">${head(N(), "المقبوضات حسب البند", `شهر ${month} ${year}هـ`)}
+      <table><thead><tr><th>البند</th><th>المبلغ</th><th>النسبة</th></tr></thead><tbody>
+      ${rKeys.map(c => `<tr><td>${hEsc(c)}</td><td class="n">${fa(rcats[c])}</td><td class="c">${rTot ? (rcats[c] / rTot * 100).toFixed(1) : 0}%</td></tr>`).join("")}
+      <tr class="tot"><td>الإجمالي</td><td class="n">${fa(rTot)}</td><td class="c">100%</td></tr></tbody></table></div>`;
     const catKeys = Object.keys(cats).sort((a, b) => cats[b] - cats[a]), catTot = catKeys.reduce((x, c) => x + cats[c], 0);
     if (catKeys.length) h += `<div class="fr-section">${head(N(), "المدفوعات حسب البند", `شهر ${month} ${year}هـ`)}
       <table><thead><tr><th>البند</th><th>المبلغ</th><th>النسبة</th></tr></thead><tbody>
@@ -5728,7 +5814,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     box.innerHTML = items + `<div class="mm-item mm-total"><div style="display:grid; grid-template-columns:1fr auto; gap:4px 10px; padding:10px 12px;"><span class="mm-name" style="font-weight:900;">الإجمالي</span><span style="font-weight:900;">${fmtNum(tr - te)}</span>
       <span style="grid-column:1/-1; font-size:0.8rem; font-weight:700;">إيراد <span class="rev-val">${fmtNum(tr)}</span> — مصروف <span class="exp-val">${fmtNum(te)}</span></span></div></div>`;
   }
-  const MCOL = [["sec-acc-detail", ".acc-breakdown-title"], ["sec-cats", ".section-title"], ["sec-years", ".section-title"], ["sec-branches", ".section-title"], ["sec-months", ".section-title"]];
+  const MCOL = [["sec-acc-detail", ".acc-breakdown-title"], ["sec-cats", ".section-title"], ["sec-revcats", ".section-title"], ["sec-years", ".section-title"], ["sec-branches", ".section-title"], ["sec-months", ".section-title"]];
   function initMobileLayout() {
     const els = MCOL.map(([id, sel]) => { const el = document.getElementById(id); return el && [el, el.querySelector(":scope > " + sel)]; }).filter(Boolean);
     document.querySelectorAll("#sec-charts > .chart-box").forEach(b => els.push([b, b.querySelector(":scope > h3")]));
