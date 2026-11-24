@@ -5248,7 +5248,12 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   const DEFAULT_REV_CATS = ["المساهمات السنوية", "الدعم والتبرعات", "الزكاة", "الصدقات", "رسوم الفعاليات والاشتراكات", "مبيعات الكتاب والمشجرة", "إيرادات التطبيق", "المبادرات", "السلف المستلمة", "مشروع مجلس الأسرة", "النقل بين الحسابات", "أخرى"];
   const CAT_RENAME = { "الزكاة المصروفة": "الزكاة", "الصدقات المصروفة": "الصدقات", "تحويلات بين الحسابات": "النقل بين الحسابات" };
   const fixCat = c => CAT_RENAME[c] || c;
-  function isTransferTx(t) { const x = normAr((t.type || "") + " " + (t.desc || "")); return /تحويل|نقل/.test(x) && /حساب/.test(x); }
+  function isTransferTx(t) {
+    if (t.cat === CAT_TRANSFER || t.rcat === CAT_TRANSFER) return true;
+    const x = normAr((t.type || "") + " " + (t.desc || ""));
+    if (/تحويل|نقل/.test(x) && /حساب/.test(x)) return true;
+    return /(للبدا|للبدء|البدء) في مشروع مجلس الاسره الجديد/.test(x);   // funding the new council project from the contributions account
+  }
   function forcedCat(t) {
     if (isTransferTx(t)) return CAT_TRANSFER;
     const a = String(t.account || ""); return a === "الزكاة" ? "الزكاة" : a === "الصدقات" ? "الصدقات" : "";
@@ -5328,6 +5333,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (!box) return;
     const showProj = (document.getElementById("revCatShowProject") || {}).checked;
     const by = revenuesByCat(txData);
+    const rsp = document.getElementById("revCatShowProject"); if (rsp) rsp.parentElement.style.display = by[CAT_PROJECT] ? "" : "none";
     const rows = Object.keys(by).filter(c => c !== CAT_TRANSFER && (showProj || c !== CAT_PROJECT)).map(c => ({ c, a: by[c] })).sort((x, y) => y.a - x.a);
     const total = rows.reduce((s, r) => s + r.a, 0), max = Math.max(1, ...rows.map(r => r.a));
     const note = document.getElementById("revCatChartNote");
@@ -5368,6 +5374,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       note.textContent = `إجمالي المصروفات المعروضة: ${fmtNum(total)} ر.س` + (!showProj && proj ? ` — لا يشمل مشروع مجلس الأسرة (${fmtNum(proj)} ر.س)` : "") + (trn ? ` — النقل بين الحسابات (${fmtNum(trn)} ر.س) غير محسوبة لأنها ليست صرفاً فعلياً` : "");
     }
     if (!rows.length) { box.innerHTML = '<div style="color:var(--muted); padding:10px;">لا توجد مصروفات مسجلة بعد لهذه السنة.</div>'; return; }
+    const csp = document.getElementById("catShowProject"); if (csp) csp.parentElement.style.display = by[CAT_PROJECT] ? "" : "none";
     const warn = [];
     box.innerHTML = rows.map(r => {
       const pctTot = total ? (r.a / total * 100).toFixed(1) : "0.0";
