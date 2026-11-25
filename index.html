@@ -1329,7 +1329,7 @@
 </div>
 <div class="tx-field">
 <label>التصنيف / البند</label>
-<select id="txTypeInput" onchange="updateAutoAccountPreview(); updateTxFormExtras()">
+<select id="txTypeInput" onchange="updateAutoAccountPreview(true); updateTxFormExtras()">
 <option value="مساهمة">مساهمة</option>
 <option value="دعم">دعم</option>
 <option value="ايراد">ايراد</option>
@@ -1342,6 +1342,10 @@
 <option value="شراء">شراء</option>
 <option value="اخرى">اخرى</option>
 </select>
+</div>
+<div class="tx-field">
+<label>🏦 الحساب البنكي <small id="txAccHint" style="color:var(--muted); font-weight:700;"></small></label>
+<select id="txAccountInput" onchange="txAccountChanged()"></select>
 </div>
 <div class="tx-field">
 <label>المبلغ (ر.س)</label>
@@ -2106,7 +2110,7 @@
       };
       const list = txData[mn] || [];
       list.forEach(tx => {
-        const acc = mapTypeToAccount(tx.type, tx.account);
+        const acc = txAccount(tx);
         tx.account = acc;
         const r = Number(tx.rev || 0);
         const e = Number(tx.exp || 0);
@@ -4271,11 +4275,29 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     }
   }
 
-  function updateAutoAccountPreview() {
+  const BANK_ACCOUNTS = ["المساهمات و الدعم", "الصدقات", "الزكاة", "الاستثمار", "مشروع مجلس الأسرة"];
+  // Account a transaction belongs to: the one chosen by hand, otherwise the default for its type.
+  function txAccount(tx) {
+    if (tx && tx.accOverride && BANK_ACCOUNTS.includes(tx.account)) return tx.account;
+    return mapTypeToAccount(tx && tx.type, tx && tx.account);
+  }
+  function accountOptions(sel) { return BANK_ACCOUNTS.map(a => `<option value="${a}"${a === sel ? " selected" : ""}>${a}</option>`).join(""); }
+  function updateAutoAccountPreview(resetAccount) {
     const typeVal = document.getElementById("txTypeInput").value;
-    const acc = mapTypeToAccount(typeVal);
+    const def = mapTypeToAccount(typeVal);
+    const sel = document.getElementById("txAccountInput");
+    if (sel && (!sel.options.length || resetAccount)) sel.innerHTML = accountOptions(def);
+    txAccountChanged();
+  }
+  function txAccountChanged() {
+    const def = mapTypeToAccount(document.getElementById("txTypeInput").value);
+    const sel = document.getElementById("txAccountInput");
+    const acc = sel && sel.value ? sel.value : def;
     const disp = document.getElementById("txAutoAccountDisplay");
     if (disp) disp.textContent = "🏦 " + acc;
+    const hint = document.getElementById("txAccHint");
+    if (hint) { hint.textContent = acc === def ? "(الافتراضي لهذا النوع)" : `(تم التغيير — الافتراضي: ${def})`; hint.style.color = acc === def ? "var(--muted)" : "#B26A00"; }
+    if (typeof updateTxFormExtras === "function") updateTxFormExtras();
   }
 
   function handleAddTransaction(e) {
@@ -4302,7 +4324,8 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       return false;
     }
 
-    const linkedAccount = mapTypeToAccount(typeVal);
+    const defAccount = mapTypeToAccount(typeVal);
+    const linkedAccount = ((document.getElementById("txAccountInput") || {}).value) || defAccount;
     if (!txData[monthName]) txData[monthName] = [];
 
     const newTxId = Date.now();
@@ -4317,6 +4340,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       account: linkedAccount
     });
     const newTx = txData[monthName][txData[monthName].length - 1];
+    if (linkedAccount !== defAccount) newTx.accOverride = true;
     if (catVal && !forcedCat(newTx)) { if (kind === "exp") newTx.cat = catVal; else newTx.rcat = catVal; }
     if (kind === "exp" && approver && S().approvalLimit > 0 && amount >= S().approvalLimit) newTx.appr = { by: approver, at: new Date().toISOString().slice(0, 10) };
     if (kind === "exp" && !S().apprFrom) saveSettings({ apprFrom: new Date().toISOString().slice(0, 10) });
@@ -4354,6 +4378,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     document.getElementById("txAmountInput").value = "";
     document.getElementById("txDescInput").value = "";
     const apI = document.getElementById("txApproverInput"); if (apI) apI.value = "";
+    updateAutoAccountPreview(true);
     updateTxFormExtras();
     const fb = document.getElementById("txFormFeedback");
     if (fb) {
@@ -4420,7 +4445,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const rowsHtml = [];
 
     entries.forEach(([rowMonth, tx, origIdx]) => {
-      const acc = mapTypeToAccount(tx.type, tx.account);
+      const acc = txAccount(tx);
       if (accFilter !== "ALL" && acc !== accFilter) return;
       if (q && !tx.desc.toLowerCase().includes(q) && !tx.type.toLowerCase().includes(q) && !acc.toLowerCase().includes(q)) return;
 
@@ -5605,7 +5630,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       if (!t.feeOf) return;
       const parent = (txData[m] || []).find(x => x.id === t.feeOf);
       if (!parent) return;
-      const acc = mapTypeToAccount(parent.type, parent.account), ty = feeTypeFor(acc);
+      const acc = txAccount(parent), ty = feeTypeFor(acc);
       if (t.type !== ty || t.account !== acc) { t.type = ty; t.account = acc; n++; }
     }));
     if (n) saveTxAndFin();
@@ -5629,9 +5654,11 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (!t || !isAdmin) return;
     const isRev = Number(t.rev) > 0;
     teCtx = { mode: "edit", month, id: t.id, isRev };
-    teOpen("✏️ تعديل الحركة", `${month} — ${t.hDate || ""} — الحساب: ${t.account}`, `
+    teOpen("✏️ تعديل الحركة", `${month} — ${t.hDate || ""}`, `
       <label style="font-weight:800; font-size:0.86rem;">البيان</label>
       <input class="rec-input" id="teDesc" type="text" value="${escHtml(t.desc || "")}" style="width:100%; margin:4px 0 12px;"/>
+      <label style="font-weight:800; font-size:0.86rem;">🏦 الحساب البنكي <small style="color:var(--muted);">(الافتراضي لنوع «${escHtml(t.type || "")}»: ${mapTypeToAccount(t.type)})</small></label>
+      <select class="rec-input" id="teAcc" onchange="tePreview()" style="width:100%; margin:4px 0 12px;">${accountOptions(txAccount(t))}</select>
       <label style="font-weight:800; font-size:0.86rem;">${isRev ? "مبلغ الإيراد" : "مبلغ المصروف"} (ر.س)</label>
       <input class="rec-input" id="teAmt" min="0.01" step="0.01" type="number" value="${r2(isRev ? t.rev : t.exp)}" oninput="tePreview()" style="width:100%; margin:4px 0 12px;"/>
       <div class="te-preview" id="tePrev"></div>`);
@@ -5651,9 +5678,14 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         : `النتيجة: المصروف يبقى <b>${fmtNum(t.exp)}</b> + رسوم تحويل جديدة <b>${fmtNum(fee)}</b> = ${fmtNum(r2(Number(t.exp) + fee))}. <b style="color:#B42318;">رصيد ${escHtml(t.account)} ينقص ${fmtNum(fee)}.</b>`;
     } else {
       const amt = r2((document.getElementById("teAmt") || {}).value), old = r2(teCtx.isRev ? t.rev : t.exp);
+      const oldAcc = txAccount(t), newAcc = (document.getElementById("teAcc") || {}).value || oldAcc;
       const d = teCtx.isRev ? amt - old : old - amt;
-      box.innerHTML = !(amt > 0) ? "اكتب المبلغ." : amt === old ? "لم يتغير المبلغ." :
-        `المبلغ من <b>${fmtNum(old)}</b> إلى <b>${fmtNum(amt)}</b> — رصيد ${escHtml(t.account)} ${d > 0 ? "يزيد" : "ينقص"} <b>${fmtNum(Math.abs(r2(d)))}</b> ر.س.`;
+      const lines = [];
+      if (!(amt > 0)) lines.push("اكتب المبلغ.");
+      else if (newAcc !== oldAcc) lines.push(`تنتقل الحركة من حساب <b>${escHtml(oldAcc)}</b> إلى <b>${escHtml(newAcc)}</b>: رصيد ${escHtml(oldAcc)} ${teCtx.isRev ? "ينقص" : "يزيد"} ${fmtNum(old)}، ورصيد ${escHtml(newAcc)} ${teCtx.isRev ? "يزيد" : "ينقص"} ${fmtNum(amt)}.` + ((t.feeId) ? " (ورسوم تحويلها تنتقل معها)" : ""));
+      else if (amt !== old) lines.push(`المبلغ من <b>${fmtNum(old)}</b> إلى <b>${fmtNum(amt)}</b> — رصيد ${escHtml(oldAcc)} ${d > 0 ? "يزيد" : "ينقص"} <b>${fmtNum(Math.abs(r2(d)))}</b> ر.س.`);
+      else lines.push("لم يتغير المبلغ ولا الحساب.");
+      box.innerHTML = lines.join("<br/>");
     }
   }
   function teSave() {
@@ -5667,7 +5699,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       if (!(fee > 0) || (inside && fee >= Number(t.exp))) { msg.textContent = "تحقق من مبلغ الرسوم."; return; }
       if (inside) t.exp = r2(Number(t.exp) - fee);
       const id = Date.now(), at = list.indexOf(t);
-      const pAcc = mapTypeToAccount(t.type, t.account);
+      const pAcc = txAccount(t);
       list.splice(at + 1, 0, { id, gDate: t.gDate, hDate: t.hDate, desc: "رسوم تحويل — " + t.desc, type: feeTypeFor(pAcc), rev: 0, exp: fee, account: pAcc, feeOf: t.id, feeIn: inside });
       t.feeId = id;
     } else {
@@ -5675,6 +5707,13 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       if (!(amt > 0) || !desc) { msg.textContent = "تحقق من المبلغ والبيان."; return; }
       if (teCtx.isRev) t.rev = amt; else t.exp = amt;
       t.desc = desc;
+      const newAcc = document.getElementById("teAcc").value;
+      if (newAcc && newAcc !== txAccount(t)) {
+        t.account = newAcc;
+        if (newAcc === mapTypeToAccount(t.type)) delete t.accOverride; else t.accOverride = true;
+        const fee = t.feeId ? list.find(x => x.id === t.feeId) : null;
+        if (fee) { fee.account = newAcc; fee.type = feeTypeFor(newAcc); }
+      }
     }
     teClose(); saveTxAndFin();
   }
@@ -5690,7 +5729,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const kind = (document.getElementById("txKindInput") || {}).value;
     const amt = Number((document.getElementById("txAmountInput") || {}).value || 0);
     const catBox = document.getElementById("txCatBox"), apBox = document.getElementById("txApprBox");
-    const forced = forcedCat({ account: mapTypeToAccount((document.getElementById("txTypeInput") || {}).value) });
+    const forced = forcedCat({ account: ((document.getElementById("txAccountInput") || {}).value) || mapTypeToAccount((document.getElementById("txTypeInput") || {}).value) });
     if (catBox) catBox.style.display = forced ? "none" : "";
     const feeBox = document.getElementById("txFeeBox"); if (feeBox) feeBox.style.display = kind === "exp" ? "" : "none";
     const cs = document.getElementById("txCatInput");
