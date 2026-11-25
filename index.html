@@ -315,6 +315,11 @@
     .mcards td[colspan] { display:block; text-align:center !important; }
   }
 
+  .te-opt { display:flex; gap:8px; align-items:flex-start; border:1px solid var(--border); border-radius:10px; padding:9px 11px; margin-bottom:8px; cursor:pointer; font-size:0.85rem; line-height:1.6; }
+  .te-opt:has(input:checked) { border-color:var(--gold); background:#FFFBEA; }
+  .te-opt input { margin-top:5px; }
+  .te-preview { background:#F4F8F4; border-radius:10px; padding:10px 12px; font-size:0.86rem; font-weight:700; line-height:1.7; margin-top:6px; }
+
   /* Update Date Banner */
   .update-banner {
     background: var(--gold-bg); border-bottom: 1px solid #E8D8A0;
@@ -1359,7 +1364,7 @@
 <select id="txCatInput"></select>
 </div>
 <div class="tx-field" id="txFeeBox" style="display:none;">
-<label>💸 رسوم التحويل (إن وجدت)</label>
+<label>💸 رسوم التحويل (إن وجدت — تُسجَّل زيادة على المبلغ)</label>
 <input id="txFeeInput" min="0" placeholder="0.00" step="0.01" type="number"/>
 </div>
 <div class="tx-field" id="txApprBox" style="display:none; grid-column: span 2;">
@@ -4318,7 +4323,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const feeInp = document.getElementById("txFeeInput");
     const fee = kind === "exp" ? Math.round(Number((feeInp && feeInp.value) || 0) * 100) / 100 : 0;
     if (fee > 0) {
-      txData[monthName].push({ id: newTxId + 1, gDate, hDate, desc: "رسوم تحويل — " + desc, type: "رسوم", rev: 0, exp: fee, account: linkedAccount, feeOf: newTxId });
+      txData[monthName].push({ id: newTxId + 1, gDate, hDate, desc: "رسوم تحويل — " + desc, type: "رسوم", rev: 0, exp: fee, account: linkedAccount, feeOf: newTxId, feeIn: false });
       newTx.feeId = newTxId + 1;
     }
     if (feeInp) feeInp.value = "";
@@ -4364,7 +4369,15 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (!isAdmin) return;
     if (!confirm("هل أنت متأكد من حذف هذه العملية المالية؟")) return;
     if (txData[monthName]) {
+      const gone = txData[monthName][indexInMonth];
       txData[monthName].splice(indexInMonth, 1);
+      if (gone && gone.feeOf) {
+        const parent = txData[monthName].find(x => x.id === gone.feeOf);
+        if (parent) {
+          if (gone.feeIn && confirm(`كانت رسوم التحويل ${fmtNum(gone.exp)} ر.س مفصولة من مصروف «${parent.desc}».\nهل تعيدها إلى مبلغه (${fmtNum(parent.exp)} ← ${fmtNum(r2(Number(parent.exp) + Number(gone.exp)))})؟`)) parent.exp = r2(Number(parent.exp) + Number(gone.exp));
+          delete parent.feeId;
+        }
+      }
       syncFinDataFromTransactions();
       lastUpdatedStr = formatGregorianToday();
       portalStore.setItem("shuaibi_tx_1448", JSON.stringify(txData));
@@ -4442,7 +4455,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${rowMonth}', ${origIdx})">📎 المرفقات (${pubN})</button>`;
       if (isAdmin && tx.rcpt) extra += ` <span class="cat-chip" style="background:#EEF3EE; color:var(--primary-dark); border-color:#C9D6C9;">🧾 ${escHtml(tx.rcpt)}</span>`;
       const adminCell = isAdmin
-        ? `<td class="m-actions" style="white-space:nowrap;">${feeBtn}${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${rowMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${rowMonth}', ${origIdx})">🗑️ حذف</button></td>`
+        ? `<td class="m-actions" style="white-space:nowrap;"><button type="button" class="btn-action btn-outline att-btn" title="تعديل المبلغ أو البيان" onclick="editTxAmount('${rowMonth}', ${origIdx})">✏️</button> ${feeBtn}${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${rowMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${rowMonth}', ${origIdx})">🗑️ حذف</button></td>`
         : "";
 
       rowsHtml.push(`<tr>
@@ -5560,23 +5573,90 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     if (Number(t.exp || 0) < s.approvalLimit || catOf(t) === CAT_TRANSFER) return false;
     return String(t.gDate || "") >= s.apprFrom || Number(t.id) > Date.parse(s.apprFrom);
   }
-  function addFeeToTx(month, idx) {
-    const t = (txData[month] || [])[idx];
-    if (!t || !isAdmin || !(Number(t.exp) > 0)) return;
-    const v = prompt(`رسوم التحويل للمصروف:\n${t.desc} — ${fmtNum(t.exp)} ر.س\n\nاكتب مبلغ الرسوم:`);
-    const fee = Math.round(Number(String(v || "").replace(/[^\d.]/g, "")) * 100) / 100;
-    if (!(fee > 0)) return;
-    const inside = fee < Number(t.exp) && confirm(`هل مبلغ الرسوم ${fmtNum(fee)} ر.س داخل ضمن المبلغ المسجل (${fmtNum(t.exp)} ر.س)؟\n\n• «موافق»: يُفصل من المبلغ، فيصبح المصروف ${fmtNum(Number(t.exp) - fee)} والرسوم ${fmtNum(fee)}، ولا يتغير الرصيد.\n• «إلغاء»: تُضاف الرسوم مصروفاً جديداً فوق المبلغ، وينقص الرصيد ${fmtNum(fee)}.`);
-    const list = txData[month], id = Date.now();
-    if (inside) t.exp = Math.round((Number(t.exp) - fee) * 100) / 100;
-    list.splice(idx + 1, 0, { id, gDate: t.gDate, hDate: t.hDate, desc: "رسوم تحويل — " + t.desc, type: "رسوم", rev: 0, exp: fee, account: t.account, feeOf: t.id });
-    t.feeId = id;
+  // ---- edit amount / transfer fee (modal) ----
+  let teCtx = null;
+  function saveTxAndFin() {
     syncFinDataFromTransactions();
     lastUpdatedStr = formatGregorianToday();
     portalStore.setItem("shuaibi_tx_1448", JSON.stringify(txData));
     portalStore.setItem("shuaibi_fin_1448", JSON.stringify(finData));
     portalStore.setItem("shuaibi_updated_1448", lastUpdatedStr);
     renderAll(); renderMonthlyLedger();
+  }
+  const r2 = v => Math.round(Number(v || 0) * 100) / 100;
+  function teOpen(title, info, body) {
+    document.getElementById("teTitle").textContent = title;
+    document.getElementById("teInfo").textContent = info;
+    document.getElementById("teBody").innerHTML = body;
+    document.getElementById("teMsg").textContent = "";
+    document.getElementById("txEditModal").classList.add("show");
+  }
+  function teClose() { document.getElementById("txEditModal").classList.remove("show"); teCtx = null; }
+  function addFeeToTx(month, idx) {
+    const t = (txData[month] || [])[idx];
+    if (!t || !isAdmin || !(Number(t.exp) > 0)) return;
+    teCtx = { mode: "fee", month, id: t.id };
+    teOpen("💸 رسوم التحويل", `${month} — ${t.hDate || ""} — ${t.desc} — المصروف المسجل: ${fmtNum(t.exp)} ر.س — الحساب: ${t.account}`, `
+      <label style="font-weight:800; font-size:0.86rem;">مبلغ الرسوم (ر.س)</label>
+      <input class="rec-input" id="teFee" min="0.01" step="0.01" type="number" oninput="tePreview()" style="width:100%; margin:4px 0 12px;"/>
+      <div style="font-weight:800; font-size:0.86rem; margin-bottom:6px;">هل الرسوم داخلة في المبلغ المسجل؟ (قارن بكشف البنك)</div>
+      <label class="te-opt"><input checked name="teMode" type="radio" value="in" onchange="tePreview()"/> <span><b>نعم، داخلة في المبلغ</b> — المبلغ في كشف البنك = المصروف المسجل. تُفصل الرسوم منه، <u>ولا يتغير الرصيد</u>.</span></label>
+      <label class="te-opt"><input name="teMode" type="radio" value="extra" onchange="tePreview()"/> <span><b>لا، غير مسجلة بعد</b> — البنك خصمها زيادة على المبلغ. تُضاف مصروفاً جديداً، <u>وينقص الرصيد</u> بقيمتها.</span></label>
+      <div class="te-preview" id="tePrev"></div>`);
+    setTimeout(() => { const f = document.getElementById("teFee"); if (f) f.focus(); tePreview(); }, 50);
+  }
+  function editTxAmount(month, idx) {
+    const t = (txData[month] || [])[idx];
+    if (!t || !isAdmin) return;
+    const isRev = Number(t.rev) > 0;
+    teCtx = { mode: "edit", month, id: t.id, isRev };
+    teOpen("✏️ تعديل الحركة", `${month} — ${t.hDate || ""} — الحساب: ${t.account}`, `
+      <label style="font-weight:800; font-size:0.86rem;">البيان</label>
+      <input class="rec-input" id="teDesc" type="text" value="${escHtml(t.desc || "")}" style="width:100%; margin:4px 0 12px;"/>
+      <label style="font-weight:800; font-size:0.86rem;">${isRev ? "مبلغ الإيراد" : "مبلغ المصروف"} (ر.س)</label>
+      <input class="rec-input" id="teAmt" min="0.01" step="0.01" type="number" value="${r2(isRev ? t.rev : t.exp)}" oninput="tePreview()" style="width:100%; margin:4px 0 12px;"/>
+      <div class="te-preview" id="tePrev"></div>`);
+    setTimeout(tePreview, 30);
+  }
+  function tePreview() {
+    const box = document.getElementById("tePrev");
+    const t = teCtx && txByRef(teCtx.month, teCtx.id);
+    if (!box || !t) return;
+    if (teCtx.mode === "fee") {
+      const fee = r2((document.getElementById("teFee") || {}).value);
+      const inside = (document.querySelector('input[name="teMode"]:checked') || {}).value === "in";
+      if (!(fee > 0)) { box.innerHTML = "اكتب مبلغ الرسوم."; return; }
+      if (inside && fee >= Number(t.exp)) { box.innerHTML = '<span style="color:#B42318;">الرسوم أكبر من المصروف المسجل.</span>'; return; }
+      box.innerHTML = inside
+        ? `النتيجة: المصروف يصبح <b>${fmtNum(r2(t.exp - fee))}</b> + رسوم تحويل <b>${fmtNum(fee)}</b> = ${fmtNum(t.exp)} (كما في البنك). <b style="color:#1E7B45;">الرصيد لا يتغير.</b>`
+        : `النتيجة: المصروف يبقى <b>${fmtNum(t.exp)}</b> + رسوم تحويل جديدة <b>${fmtNum(fee)}</b> = ${fmtNum(r2(Number(t.exp) + fee))}. <b style="color:#B42318;">رصيد ${escHtml(t.account)} ينقص ${fmtNum(fee)}.</b>`;
+    } else {
+      const amt = r2((document.getElementById("teAmt") || {}).value), old = r2(teCtx.isRev ? t.rev : t.exp);
+      const d = teCtx.isRev ? amt - old : old - amt;
+      box.innerHTML = !(amt > 0) ? "اكتب المبلغ." : amt === old ? "لم يتغير المبلغ." :
+        `المبلغ من <b>${fmtNum(old)}</b> إلى <b>${fmtNum(amt)}</b> — رصيد ${escHtml(t.account)} ${d > 0 ? "يزيد" : "ينقص"} <b>${fmtNum(Math.abs(r2(d)))}</b> ر.س.`;
+    }
+  }
+  function teSave() {
+    const t = teCtx && txByRef(teCtx.month, teCtx.id);
+    const msg = document.getElementById("teMsg");
+    if (!t || !isAdmin) return;
+    const list = txData[teCtx.month];
+    if (teCtx.mode === "fee") {
+      const fee = r2(document.getElementById("teFee").value);
+      const inside = (document.querySelector('input[name="teMode"]:checked') || {}).value === "in";
+      if (!(fee > 0) || (inside && fee >= Number(t.exp))) { msg.textContent = "تحقق من مبلغ الرسوم."; return; }
+      if (inside) t.exp = r2(Number(t.exp) - fee);
+      const id = Date.now(), at = list.indexOf(t);
+      list.splice(at + 1, 0, { id, gDate: t.gDate, hDate: t.hDate, desc: "رسوم تحويل — " + t.desc, type: "رسوم", rev: 0, exp: fee, account: t.account, feeOf: t.id, feeIn: inside });
+      t.feeId = id;
+    } else {
+      const amt = r2(document.getElementById("teAmt").value), desc = document.getElementById("teDesc").value.trim();
+      if (!(amt > 0) || !desc) { msg.textContent = "تحقق من المبلغ والبيان."; return; }
+      if (teCtx.isRev) t.rev = amt; else t.exp = amt;
+      t.desc = desc;
+    }
+    teClose(); saveTxAndFin();
   }
   function approveTx(month, idx) {
     const t = (txData[month] || [])[idx];
@@ -6255,6 +6335,21 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 <button class="btn-action btn-gold" onclick="printReceipt()" type="button">🖨️ طباعة / حفظ PDF</button>
 <button class="btn-action btn-outline" onclick="copyReceiptText()" type="button">📋 نسخ نص السند للواتساب</button>
 <span id="rcptMsg" style="font-weight:800; color:var(--rev-green); font-size:0.85rem;"></span>
+</div>
+</div>
+</div>
+<div class="modal-bg" id="txEditModal" onclick="if(event.target===this) teClose()">
+<div class="modal-box" style="max-width:560px;">
+<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+<h3 id="teTitle"></h3>
+<button class="btn-action btn-outline" onclick="teClose()" type="button">✕</button>
+</div>
+<div id="teInfo" style="font-size:0.84rem; color:var(--muted); font-weight:700; margin-bottom:12px;"></div>
+<div id="teBody"></div>
+<div style="display:flex; gap:8px; align-items:center; margin-top:14px;">
+<button class="btn-action btn-gold" onclick="teSave()" type="button">💾 حفظ</button>
+<button class="btn-action btn-outline" onclick="teClose()" type="button">إلغاء</button>
+<span id="teMsg" style="color:#B42318; font-weight:800; font-size:0.85rem;"></span>
 </div>
 </div>
 </div>
