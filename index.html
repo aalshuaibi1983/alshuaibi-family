@@ -352,6 +352,18 @@
     padding-bottom: 12px; margin-bottom: 16px; border-bottom: 1px solid var(--border); gap: 10px;
   }
   .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .admin-tabs { display:grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap:8px; }
+  .admin-tabs button { position:relative; display:flex; align-items:center; justify-content:center; gap:8px; min-height:48px; padding:8px 10px; border-radius:12px; border:1px solid var(--border); border-bottom:3px solid var(--gold); background:#FFF; color:var(--primary-dark); font-family:inherit; font-weight:800; font-size:0.86rem; cursor:pointer; transition:0.2s; }
+  .admin-tabs button span { font-size:1.1rem; }
+  .admin-tabs button:hover { background:#F4F8F4; }
+  .admin-tabs button.on { background:var(--primary); color:var(--gold-light); border-color:var(--primary); }
+  .adm-badge { position:absolute; top:-7px; inset-inline-start:-6px; min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:#B42318; color:#FFF; font-size:0.72rem; display:none; align-items:center; justify-content:center; }
+  .adm-badge.show { display:inline-flex; }
+  .admin-hint { margin-top:10px; font-size:0.82rem; color:var(--muted); font-weight:700; }
+  #adminPanel .admin-box[data-tab]:not(.tab-on) { display:none !important; }
+  #adminPanel .admin-grid { margin-top:14px; }
+  #adminPanel:not(.has-tab) .admin-grid { display:none; }
+  @media (max-width: 760px) { .admin-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } .admin-tabs button:last-child { grid-column: 1 / -1; } }
   .admin-box {
     background: #F9FBF9; border: 1px dashed var(--primary-light); border-radius: 12px; padding: 14px;
   }
@@ -894,10 +906,17 @@
 <p style="color:var(--muted); font-size:0.84rem;">أي إضافة أو حذف أو رفع إكسل يُحفظ تلقائياً ويظهر لجميع أفراد الأسرة</p>
 </div>
 <div style="display:flex; gap:8px; flex-wrap:wrap;">
-<button class="btn-action btn-gold" onclick="exportPublishedHtml()" type="button">⬇️ نسخة احتياطية من البيانات</button>
-<button class="btn-action btn-outline" onclick="exitAdminMode()" type="button">خروج من وضع المدير</button>
+<button class="btn-action btn-outline" onclick="exitAdminMode()" type="button">🚪 خروج من وضع المدير</button>
 </div>
 </div>
+<div class="admin-tabs" id="adminTabs">
+<button data-tab="entry" onclick="adminTab('entry')" type="button"><span>➕</span>الإدخال والتحديث</button>
+<button data-tab="finance" onclick="adminTab('finance')" type="button"><span>🏦</span>المالية والمطابقة<b class="adm-badge" id="admBadgeFinance"></b></button>
+<button data-tab="reports" onclick="adminTab('reports')" type="button"><span>📄</span>التقارير</button>
+<button data-tab="contrib" onclick="adminTab('contrib')" type="button"><span>📋</span>غير المساهمين<b class="adm-badge" id="admBadgeContrib"></b></button>
+<button data-tab="log" onclick="adminTab('log')" type="button"><span>🛡️</span>السجل والنسخ</button>
+</div>
+<div class="admin-hint" id="adminHint">اختر قسماً من الأعلى لعرض أدواته. اضغط القسم المفتوح مرة أخرى لإغلاقه.</div>
 <div class="admin-grid">
 <!-- Box 1: Add Supporter -->
 <div class="admin-box" style="grid-column: span 2;">
@@ -1207,7 +1226,7 @@
 </div>
 <div class="table-wrap mcards">
 <table>
-<thead><tr><th>م</th><th>اسم المحفظة</th><th>رقم الآيبان</th><th>مبلغ الاستثمار</th><th>رصيد المحفظة الحالي</th><th>الربح</th><th id="invActHead">إجراءات</th></tr></thead>
+<thead><tr><th>م</th><th>اسم المحفظة</th><th id="invIbanHead">رقم الآيبان</th><th>مبلغ الاستثمار</th><th>رصيد المحفظة الحالي</th><th>الربح</th><th id="invActHead">إجراءات</th></tr></thead>
 <tbody id="invBody"></tbody>
 <tfoot id="invFoot"></tfoot>
 </table>
@@ -2388,7 +2407,7 @@
   function setAdminState(flag) {
     isAdmin = !!flag;
     if (!isAdmin) portalAdminPin = "";
-    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); initTxFormDate(); setTimeout(fixFeeAccounts, 1500); setTimeout(autoMonthlyReport, 2500); }, 100); }
+    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); initTxFormDate(); setTimeout(fixFeeAccounts, 1500); initAdminTabs(); setTimeout(autoMonthlyReport, 2500); }, 100); }
     const panel = document.getElementById("adminPanel");
     const btn = document.getElementById("adminToggleBtn");
     const badge = document.getElementById("roleBadge");
@@ -5603,7 +5622,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   }
 
   function renderFinanceExtras() {
-    try { renderInvest(); renderCatChart(); renderRevCatChart(); renderYearsCompare(); renderBranchPct(); if (isAdmin) renderSettingsBox(); } catch (e) { console.warn("extras", e); }
+    try { if (isAdmin) updateAdminBadges(); renderInvest(); renderCatChart(); renderRevCatChart(); renderYearsCompare(); renderBranchPct(); if (isAdmin) renderSettingsBox(); } catch (e) { console.warn("extras", e); }
   }
 
   // ---- Settings admin box (categories, budgets, approval limit) ----
@@ -6139,13 +6158,14 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const ps = INV().portfolios;
     document.getElementById("invAddBtn").style.display = isAdmin ? "" : "none";
     document.getElementById("invActHead").style.display = isAdmin ? "" : "none";
+    document.getElementById("invIbanHead").style.display = isAdmin ? "" : "none";
     let ti = 0, tb = 0;
     body.innerHTML = ps.map((p, i) => {
       const inv = r2(p.invested), bal = r2(p.balance), prof = r2(bal - inv);
       ti += inv; tb += bal;
       const pct = inv ? (prof / inv * 100) : 0;
       const profCls = prof > 0 ? "bal-pos" : prof < 0 ? "bal-neg" : "";
-      const iban = p.iban ? (isAdmin ? `<bdi>${escHtml(ibanFmt(p.iban))}</bdi> <button type="button" class="att-pub-btn" onclick="copyText('${escHtml(String(p.iban).replace(/\s+/g, ""))}').then(()=>{this.textContent='✓ نُسخ'})">نسخ</button>` : `<bdi>${escHtml(ibanMask(p.iban))}</bdi>`) : '<span style="color:var(--muted);">لم يُضف بعد</span>';
+      const iban = !isAdmin ? "" : p.iban ? (isAdmin ? `<bdi>${escHtml(ibanFmt(p.iban))}</bdi> <button type="button" class="att-pub-btn" onclick="copyText('${escHtml(String(p.iban).replace(/\s+/g, ""))}').then(()=>{this.textContent='✓ نُسخ'})">نسخ</button>` : `<bdi>${escHtml(ibanMask(p.iban))}</bdi>`) : '<span style="color:var(--muted);">لم يُضف بعد</span>';
       const acts = isAdmin ? `<td class="m-actions"><div class="inv-acts">
         <button type="button" class="btn-action btn-outline att-btn" title="زيادة مبلغ الاستثمار" onclick="invAction(${i},'deposit')">➕ زيادة</button>
         <button type="button" class="btn-action btn-outline att-btn" title="تحديث رصيد المحفظة" onclick="invAction(${i},'value')">🔄 الرصيد</button>
@@ -6156,15 +6176,15 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       return `<tr>
         <td class="m-hide">${i + 1}</td>
         <td class="text-right m-desc" style="font-weight:800;">💼 ${escHtml(p.name)}<div style="font-size:0.75rem; color:var(--muted); font-weight:700;">ممولة من: ${escHtml(p.source || "—")}</div></td>
-        <td data-label="رقم الآيبان" style="white-space:nowrap; font-size:0.82rem;">${iban}</td>
+        ${isAdmin ? `<td data-label="رقم الآيبان" style="white-space:nowrap; font-size:0.82rem;">${iban}</td>` : ""}
         <td data-label="مبلغ الاستثمار">${fmtNum(inv)}</td>
         <td data-label="رصيد المحفظة الحالي"><strong>${fmtNum(bal)}</strong>${p.balanceDate ? `<div style="font-size:0.72rem; color:var(--muted);">حتى ${fmtDateShort(p.balanceDate)}</div>` : ""}</td>
         <td data-label="الربح"><span class="${profCls}">${fmtNum(prof)}</span>${inv ? `<div style="font-size:0.74rem; font-weight:800;" class="${profCls}"><bdi dir="ltr">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</bdi></div>` : ""}</td>
         ${acts}</tr>`;
-    }).join("") || `<tr><td colspan="${isAdmin ? 7 : 6}" style="text-align:center; color:var(--muted);">لا توجد محافظ بعد</td></tr>`;
+    }).join("") || `<tr><td colspan="${isAdmin ? 7 : 5}" style="text-align:center; color:var(--muted);">لا توجد محافظ بعد</td></tr>`;
     const tp = r2(tb - ti), bank = (finData.accounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
-    foot.innerHTML = `<tr><td colspan="3" class="m-desc">إجمالي المحافظ</td><td data-label="مبلغ الاستثمار">${fmtNum(ti)}</td><td data-label="رصيد المحافظ">${fmtNum(tb)}</td><td data-label="الربح"><span class="${tp > 0 ? "bal-pos" : tp < 0 ? "bal-neg" : ""}">${fmtNum(tp)}</span></td>${isAdmin ? '<td class="m-hide"></td>' : ""}</tr>
-      <tr style="background:#F7E9B8;"><td colspan="4" class="m-desc">إجمالي أموال الأسرة (الأرصدة البنكية ${fmtNum(bank)} + أرصدة المحافظ ${fmtNum(tb)})</td><td data-label="الإجمالي" colspan="${isAdmin ? 3 : 2}"><strong>${fmtNum(bank + tb)}</strong></td></tr>`;
+    foot.innerHTML = `<tr><td colspan="${isAdmin ? 3 : 2}" class="m-desc">إجمالي المحافظ</td><td data-label="مبلغ الاستثمار">${fmtNum(ti)}</td><td data-label="رصيد المحافظ">${fmtNum(tb)}</td><td data-label="الربح"><span class="${tp > 0 ? "bal-pos" : tp < 0 ? "bal-neg" : ""}">${fmtNum(tp)}</span></td>${isAdmin ? '<td class="m-hide"></td>' : ""}</tr>
+      <tr style="background:#F7E9B8;"><td colspan="${isAdmin ? 4 : 3}" class="m-desc">إجمالي أموال الأسرة (الأرصدة البنكية ${fmtNum(bank)} + أرصدة المحافظ ${fmtNum(tb)})</td><td data-label="الإجمالي" colspan="${isAdmin ? 3 : 2}"><strong>${fmtNum(bank + tb)}</strong></td></tr>`;
   }
 
   // ---- actions ----
@@ -6299,6 +6319,47 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const data = portalClone(INV()), p = data.portfolios[i];
     if (!p || !confirm(`حذف «${p.name}»؟`)) return;
     data.portfolios.splice(i, 1); invClose(); saveInvest(data);
+  }
+
+
+  // ---- Admin panel tabs ----
+  const ADMIN_TAB_MAP = [["إضافة داعم", "entry"], ["تحديث البيانات من ملف", "entry"], ["المزامنة التلقائية", "entry"], ["إدارة المساهمين", "entry"],
+    ["التقرير المالي والقوائم", "reports"], ["التقارير الشهرية", "reports"],
+    ["بنود المصروفات", "finance"], ["المطابقة البنكية", "finance"], ["بدء سنة مالية", "finance"],
+    ["قائمة غير المساهمين", "contrib"], ["سجل التعديلات", "log"], ["النسخ الاحتياطي", "log"]];
+  function initAdminTabs() {
+    document.querySelectorAll("#adminPanel .admin-box").forEach(b => {
+      const h = (b.querySelector("h4") || {}).textContent || "";
+      const m = ADMIN_TAB_MAP.find(([k]) => h.includes(k));
+      b.dataset.tab = m ? m[1] : "entry";
+    });
+    let last = null; try { last = localStorage.getItem("shuaibi_admin_tab"); } catch (e) {}
+    adminTab(last && last !== "none" ? last : null, true);
+  }
+  function adminTab(tab, init) {
+    const panel = document.getElementById("adminPanel");
+    if (!panel) return;
+    const cur = panel.dataset.tab || "";
+    if (!init && tab === cur) tab = null;
+    panel.dataset.tab = tab || "";
+    panel.classList.toggle("has-tab", !!tab);
+    document.querySelectorAll("#adminTabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+    document.querySelectorAll("#adminPanel .admin-box[data-tab]").forEach(b => b.classList.toggle("tab-on", b.dataset.tab === tab));
+    const hint = document.getElementById("adminHint"); if (hint) hint.style.display = tab ? "none" : "";
+    try { localStorage.setItem("shuaibi_admin_tab", tab || "none"); } catch (e) {}
+    if (tab === "log" && typeof loadBackupList === "function" && !init) { try { renderChangeLog(); } catch (e) {} }
+    updateAdminBadges();
+  }
+  function updateAdminBadges() {
+    try {
+      const set = (id, n, title) => { const b = document.getElementById(id); if (!b) return; b.textContent = n; b.title = title || ""; b.classList.toggle("show", n > 0); };
+      let pend = 0;
+      Object.keys(txData || {}).forEach(m => (txData[m] || []).forEach(t => { if (!t.appr && needsApproval(t)) pend++; }));
+      set("admBadgeFinance", pend, "مصروفات بحاجة اعتماد");
+      const y = activeYear;
+      const unpaid = ((nonContrib && nonContrib.people) || []).filter(p => (p.years || {})[y] === true && !(p.exempt && p.exempt !== "غير معفي")).length;
+      set("admBadgeContrib", unpaid, "غير مساهمين لهذه السنة");
+    } catch (e) {}
   }
 
   // ===== Backups (stored by the server in the owner's Google Drive) =====
