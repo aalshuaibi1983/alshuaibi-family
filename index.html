@@ -2357,7 +2357,7 @@
   function setAdminState(flag) {
     isAdmin = !!flag;
     if (!isAdmin) portalAdminPin = "";
-    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); initTxFormDate(); setTimeout(autoMonthlyReport, 2500); }, 100); }
+    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); initTxFormDate(); setTimeout(fixFeeAccounts, 1500); setTimeout(autoMonthlyReport, 2500); }, 100); }
     const panel = document.getElementById("adminPanel");
     const btn = document.getElementById("adminToggleBtn");
     const badge = document.getElementById("roleBadge");
@@ -4323,7 +4323,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const feeInp = document.getElementById("txFeeInput");
     const fee = kind === "exp" ? Math.round(Number((feeInp && feeInp.value) || 0) * 100) / 100 : 0;
     if (fee > 0) {
-      txData[monthName].push({ id: newTxId + 1, gDate, hDate, desc: "رسوم تحويل — " + desc, type: "رسوم", rev: 0, exp: fee, account: linkedAccount, feeOf: newTxId, feeIn: false });
+      txData[monthName].push({ id: newTxId + 1, gDate, hDate, desc: "رسوم تحويل — " + desc, type: feeTypeFor(linkedAccount), rev: 0, exp: fee, account: linkedAccount, feeOf: newTxId, feeIn: false });
       newTx.feeId = newTxId + 1;
     }
     if (feeInp) feeInp.value = "";
@@ -5592,6 +5592,25 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     document.getElementById("txEditModal").classList.add("show");
   }
   function teClose() { document.getElementById("txEditModal").classList.remove("show"); teCtx = null; }
+  // The transaction "type" decides the bank account, so a fee's type must point at its own account.
+  function feeTypeFor(account) {
+    const a = String(account || "");
+    return a === "الزكاة" ? "رسوم تحويل زكاة" : a === "الصدقات" ? "رسوم تحويل صدقة" : a === "الاستثمار" ? "رسوم تحويل استثمار" : a.includes("مشروع") ? "رسوم تحويل مشروع" : "رسوم";
+  }
+  // Repair fees recorded before this fix (type "رسوم" pulled them into the contributions account).
+  function fixFeeAccounts() {
+    if (!isAdmin || !txData) return 0;
+    let n = 0;
+    Object.keys(txData).forEach(m => (txData[m] || []).forEach(t => {
+      if (!t.feeOf) return;
+      const parent = (txData[m] || []).find(x => x.id === t.feeOf);
+      if (!parent) return;
+      const acc = mapTypeToAccount(parent.type, parent.account), ty = feeTypeFor(acc);
+      if (t.type !== ty || t.account !== acc) { t.type = ty; t.account = acc; n++; }
+    }));
+    if (n) saveTxAndFin();
+    return n;
+  }
   function addFeeToTx(month, idx) {
     const t = (txData[month] || [])[idx];
     if (!t || !isAdmin || !(Number(t.exp) > 0)) return;
@@ -5648,7 +5667,8 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       if (!(fee > 0) || (inside && fee >= Number(t.exp))) { msg.textContent = "تحقق من مبلغ الرسوم."; return; }
       if (inside) t.exp = r2(Number(t.exp) - fee);
       const id = Date.now(), at = list.indexOf(t);
-      list.splice(at + 1, 0, { id, gDate: t.gDate, hDate: t.hDate, desc: "رسوم تحويل — " + t.desc, type: "رسوم", rev: 0, exp: fee, account: t.account, feeOf: t.id, feeIn: inside });
+      const pAcc = mapTypeToAccount(t.type, t.account);
+      list.splice(at + 1, 0, { id, gDate: t.gDate, hDate: t.hDate, desc: "رسوم تحويل — " + t.desc, type: feeTypeFor(pAcc), rev: 0, exp: fee, account: pAcc, feeOf: t.id, feeIn: inside });
       t.feeId = id;
     } else {
       const amt = r2(document.getElementById("teAmt").value), desc = document.getElementById("teDesc").value.trim();
