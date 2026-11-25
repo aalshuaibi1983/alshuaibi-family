@@ -320,6 +320,10 @@
   .te-opt input { margin-top:5px; }
   .te-preview { background:#F4F8F4; border-radius:10px; padding:10px 12px; font-size:0.86rem; font-weight:700; line-height:1.7; margin-top:6px; }
 
+  .inv-acts { display:flex; flex-wrap:wrap; gap:4px; max-width:250px; }
+  .inv-acts .att-btn { flex:0 0 auto; }
+  #sec-invest td.m-desc { min-width:170px; }
+
   /* Update Date Banner */
   .update-banner {
     background: var(--gold-bg); border-bottom: 1px solid #E8D8A0;
@@ -1107,8 +1111,8 @@
 <button class="btn-action btn-outline" onclick="hideInstallBar()" type="button">لاحقاً</button></div>
 <!-- Quick Navigation -->
 <nav class="quick-nav" aria-label="التنقل السريع">
-<a href="#sec-kpis"><span class="qn-ic">📌</span><span class="qn-tx">المؤشرات المالية</span></a>
 <a href="#sec-accounts"><span class="qn-ic">🏦</span><span class="qn-tx">أرصدة الحسابات</span></a>
+<a href="#sec-invest"><span class="qn-ic">💼</span><span class="qn-tx">محافظ الاستثمار</span></a>
 <a href="#sec-acc-detail"><span class="qn-ic">🔎</span><span class="qn-tx">تفصيل الحسابات</span></a>
 <a href="#sec-charts"><span class="qn-ic">📈</span><span class="qn-tx">الرسوم البيانية</span></a>
 <a href="#sec-cats"><span class="qn-ic">📤</span><span class="qn-tx">المصروفات بالبنود</span></a>
@@ -1194,6 +1198,21 @@
 <tfoot id="accountsTableFoot"></tfoot>
 </table>
 </div>
+</div>
+<!-- Investment portfolios -->
+<div class="section-card" id="sec-invest">
+<div class="section-title">
+<span>💼 محافظ الاستثمار</span>
+<button class="btn-action btn-gold" id="invAddBtn" onclick="invAction(null,'new')" style="display:none;" type="button">➕ إضافة محفظة</button>
+</div>
+<div class="table-wrap mcards">
+<table>
+<thead><tr><th>م</th><th>اسم المحفظة</th><th>رقم الآيبان</th><th>مبلغ الاستثمار</th><th>رصيد المحفظة الحالي</th><th>الربح</th><th id="invActHead">إجراءات</th></tr></thead>
+<tbody id="invBody"></tbody>
+<tfoot id="invFoot"></tfoot>
+</table>
+</div>
+<p style="font-size:0.8rem; color:var(--muted); margin:8px 0 0;">الربح = رصيد المحفظة الحالي − مبلغ الاستثمار. يُحدَّث رصيد المحفظة من زر «🔄 الرصيد» حسب كشف المحفظة.</p>
 </div>
 <!-- Per-account breakdown -->
 <div class="section-card" id="sec-acc-detail">
@@ -1753,6 +1772,7 @@
     if (key === "changelog") return changeLog;
     if (key === "noncontrib") return nonContrib;
     if (key === "settings") return portalSettings;
+    if (key === "invest") return investData;
     if (key === "bankrec") return bankRec;
     const k = parseYearKey(key);
     if (!k) return null;
@@ -1837,6 +1857,13 @@
     if (!data || typeof data !== "object") return;
     let activeChanged = false, activeFinChanged = false;
     Object.keys(data).forEach(key => {
+      if (key === "invest" && data[key] != null) {
+        const json = JSON.stringify(data[key]);
+        if (portalLastJson[key] === json || portalDirty.has(key)) return;
+        portalLastJson[key] = json;
+        if (typeof data[key] === "object") { investData = portalClone(data[key]); setTimeout(renderInvest, 0); }
+        return;
+      }
       if (key === "settings" && data[key] != null) {
         const json = JSON.stringify(data[key]);
         if (portalLastJson[key] === json || portalDirty.has(key)) return;
@@ -4799,7 +4826,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // =====================================================================
   let changeLog = [];
   let bankRec = {};
-  const PART_LABEL = { settings: "الإعدادات", noncontrib: "غير المساهمين", tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
+  const PART_LABEL = { invest: "محافظ الاستثمار", settings: "الإعدادات", noncontrib: "غير المساهمين", tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
   const escHtml = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const money = v => fmtNum(Number(v || 0)) + " ر.س";
 
@@ -4824,6 +4851,19 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         Object.keys(yrs).forEach(y => { if (prev[y] !== yrs[y]) out.push({ t: now, y, p: "noncontrib", d: (yrs[y] ? "إعادة إلى غير المساهمين: " : "تسجيل سداد مساهمة: ") + shortName(p.name) + " (" + p.branch + ")" }); });
       });
       if (!out.length && oldJson && JSON.stringify(old.template) !== JSON.stringify((newVal || {}).template)) out.push({ t: now, y: "", p: "noncontrib", d: "تعديل نص رسالة التذكير" });
+      return out;
+    }
+    if (key === "invest") {
+      const o = oldJson ? JSON.parse(oldJson) : { portfolios: [] }, n = newVal || { portfolios: [] }, out = [];
+      const K = { deposit: "زيادة مبلغ الاستثمار", withdraw: "سحب من المحفظة", profit: "تحويل أرباح", value: "تحديث رصيد المحفظة إلى", open: "إضافة محفظة" };
+      (n.portfolios || []).forEach(p => {
+        const op = (o.portfolios || []).find(x => x.id === p.id);
+        const newMoves = (p.moves || []).slice(op ? (op.moves || []).length : 0);
+        newMoves.forEach(m => out.push({ t: now, y: "", p: "invest", d: `${p.name}: ${K[m.kind] || m.kind}${m.kind === "open" ? "" : " " + money(m.amount)}${m.account && m.kind !== "value" ? " (" + m.account + ")" : ""}` }));
+        if (op && (op.name !== p.name || op.iban !== p.iban || op.source !== p.source)) out.push({ t: now, y: "", p: "invest", d: `تعديل بيانات المحفظة: ${p.name}` });
+        if (!op && !newMoves.length) out.push({ t: now, y: "", p: "invest", d: `إضافة محفظة: ${p.name}` });
+      });
+      (o.portfolios || []).filter(x => !(n.portfolios || []).some(p => p.id === x.id)).forEach(x => out.push({ t: now, y: "", p: "invest", d: `حذف المحفظة: ${x.name}` }));
       return out;
     }
     if (key === "settings") {
@@ -5333,10 +5373,11 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // =====================================================================
   const DEFAULT_CATS = ["مساعدات الأسر المحتاجة", "الزكاة", "الصدقات", "المناسبات والفعاليات", "مجلس الأسرة (تشغيل وصيانة)", "مشروع مجلس الأسرة", "الهوية والطباعة والتقنية", "سداد سلف", "رسوم ومصروفات إدارية", "رسوم التحويل البنكية", "النقل بين الحسابات", "أخرى"];
   const CAT_TRANSFER = "النقل بين الحسابات", CAT_PROJECT = "مشروع مجلس الأسرة", CAT_FEE = "رسوم التحويل البنكية";
-  const DEFAULT_REV_CATS = ["المساهمات السنوية", "الدعم والتبرعات", "الزكاة", "الصدقات", "رسوم الفعاليات والاشتراكات", "مبيعات الكتاب والمشجرة", "إيرادات التطبيق", "المبادرات", "السلف المستلمة", "مشروع مجلس الأسرة", "النقل بين الحسابات", "أخرى"];
+  const DEFAULT_REV_CATS = ["المساهمات السنوية", "الدعم والتبرعات", "الزكاة", "الصدقات", "رسوم الفعاليات والاشتراكات", "مبيعات الكتاب والمشجرة", "إيرادات التطبيق", "المبادرات", "أرباح الاستثمار", "السلف المستلمة", "مشروع مجلس الأسرة", "النقل بين الحسابات", "أخرى"];
   const CAT_RENAME = { "الزكاة المصروفة": "الزكاة", "الصدقات المصروفة": "الصدقات", "تحويلات بين الحسابات": "النقل بين الحسابات" };
   const fixCat = c => CAT_RENAME[c] || c;
   function isTransferTx(t) {
+    if (t.invest && !t.investProfit) return true;
     if (t.cat === CAT_TRANSFER || t.rcat === CAT_TRANSFER) return true;
     const x = normAr((t.type || "") + " " + (t.desc || ""));
     if (/تحويل|نقل/.test(x) && /حساب/.test(x)) return true;
@@ -5344,6 +5385,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   }
   function isFeeTx(t) { return !!t.feeOf || /^رسوم (التحويل|تحويل)/.test(normAr(t.desc || "").replace(/^رسوم التحويل/, "رسوم تحويل")); }
   function forcedCat(t) {
+    if (t.investProfit && Number(t.rev) > 0) return "أرباح الاستثمار";
     if (Number(t.exp) > 0 && isFeeTx(t)) return CAT_FEE;
     if (isTransferTx(t)) return CAT_TRANSFER;
     const a = String(t.account || ""); return a === "الزكاة" ? "الزكاة" : a === "الصدقات" ? "الصدقات" : "";
@@ -5353,7 +5395,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     const s = portalSettings || {};
     return {
       cats: Array.isArray(s.cats) && s.cats.length ? [...new Set(s.cats.map(fixCat).concat([CAT_FEE]))] : DEFAULT_CATS,
-      revCats: Array.isArray(s.revCats) && s.revCats.length ? [...new Set(s.revCats.map(fixCat))] : DEFAULT_REV_CATS,
+      revCats: Array.isArray(s.revCats) && s.revCats.length ? [...new Set(s.revCats.map(fixCat).concat(["أرباح الاستثمار"]))] : DEFAULT_REV_CATS,
       budgets: s.budgets || {},
       approvalLimit: s.approvalLimit != null ? Number(s.approvalLimit) : 5000,
       apprFrom: s.apprFrom || "",
@@ -5561,7 +5603,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   }
 
   function renderFinanceExtras() {
-    try { renderCatChart(); renderRevCatChart(); renderYearsCompare(); renderBranchPct(); if (isAdmin) renderSettingsBox(); } catch (e) { console.warn("extras", e); }
+    try { renderInvest(); renderCatChart(); renderRevCatChart(); renderYearsCompare(); renderBranchPct(); if (isAdmin) renderSettingsBox(); } catch (e) { console.warn("extras", e); }
   }
 
   // ---- Settings admin box (categories, budgets, approval limit) ----
@@ -6070,6 +6112,195 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", initMobileLayout); else setTimeout(initMobileLayout, 0);
 
+
+  // =====================================================================
+  // Investment portfolios (global key "invest")
+  // =====================================================================
+  const CAT_INV_PROFIT = "أرباح الاستثمار";
+  const DEFAULT_PORTFOLIOS = [
+    { id: "p_support", name: "محفظة استثمار المساهمات و الدعم", iban: "", source: "المساهمات و الدعم", invested: 0, balance: 0, balanceDate: "", moves: [] },
+    { id: "p_sadaqat", name: "محفظة استثمار الصدقات", iban: "", source: "الصدقات", invested: 0, balance: 0, balanceDate: "", moves: [] }
+  ];
+  let investData = null;
+  function INV() { return investData && Array.isArray(investData.portfolios) ? investData : { portfolios: portalClone(DEFAULT_PORTFOLIOS) }; }
+  function saveInvest(data) {
+    investData = data;
+    portalDirty.add("invest"); clearTimeout(portalFlushTimer); portalFlushTimer = setTimeout(portalFlush, 400);
+    renderInvest();
+  }
+  const ibanFmt = v => String(v || "").replace(/\s+/g, "").toUpperCase().replace(/(.{4})/g, "$1 ").trim();
+  const ibanMask = v => { const x = String(v || "").replace(/\s+/g, ""); return x ? "•••• " + x.slice(-4) : ""; };
+  function todayG() { return new Date(Date.now() + 3 * 3600 * 1000).toISOString().slice(0, 10); }
+  function fmtDateShort(g) { return g ? g.split("-").reverse().join("/") : ""; }
+
+  function renderInvest() {
+    const body = document.getElementById("invBody"), foot = document.getElementById("invFoot");
+    if (!body) return;
+    const ps = INV().portfolios;
+    document.getElementById("invAddBtn").style.display = isAdmin ? "" : "none";
+    document.getElementById("invActHead").style.display = isAdmin ? "" : "none";
+    let ti = 0, tb = 0;
+    body.innerHTML = ps.map((p, i) => {
+      const inv = r2(p.invested), bal = r2(p.balance), prof = r2(bal - inv);
+      ti += inv; tb += bal;
+      const pct = inv ? (prof / inv * 100) : 0;
+      const profCls = prof > 0 ? "bal-pos" : prof < 0 ? "bal-neg" : "";
+      const iban = p.iban ? (isAdmin ? `<bdi>${escHtml(ibanFmt(p.iban))}</bdi> <button type="button" class="att-pub-btn" onclick="copyText('${escHtml(String(p.iban).replace(/\s+/g, ""))}').then(()=>{this.textContent='✓ نُسخ'})">نسخ</button>` : `<bdi>${escHtml(ibanMask(p.iban))}</bdi>`) : '<span style="color:var(--muted);">لم يُضف بعد</span>';
+      const acts = isAdmin ? `<td class="m-actions"><div class="inv-acts">
+        <button type="button" class="btn-action btn-outline att-btn" title="زيادة مبلغ الاستثمار" onclick="invAction(${i},'deposit')">➕ زيادة</button>
+        <button type="button" class="btn-action btn-outline att-btn" title="تحديث رصيد المحفظة" onclick="invAction(${i},'value')">🔄 الرصيد</button>
+        <button type="button" class="btn-action btn-outline att-btn" title="تحويل الأرباح إلى الحساب البنكي" onclick="invAction(${i},'profit')">💰 الأرباح</button>
+        <button type="button" class="btn-action btn-outline att-btn" title="سحب من مبلغ الاستثمار" onclick="invAction(${i},'withdraw')">↩️ سحب</button>
+        <button type="button" class="btn-action btn-outline att-btn" title="تعديل البيانات" onclick="invAction(${i},'edit')">✏️</button>
+        <button type="button" class="btn-action btn-outline att-btn" title="سجل الحركات" onclick="invAction(${i},'log')">📜</button></div></td>` : "";
+      return `<tr>
+        <td class="m-hide">${i + 1}</td>
+        <td class="text-right m-desc" style="font-weight:800;">💼 ${escHtml(p.name)}<div style="font-size:0.75rem; color:var(--muted); font-weight:700;">ممولة من: ${escHtml(p.source || "—")}</div></td>
+        <td data-label="رقم الآيبان" style="white-space:nowrap; font-size:0.82rem;">${iban}</td>
+        <td data-label="مبلغ الاستثمار">${fmtNum(inv)}</td>
+        <td data-label="رصيد المحفظة الحالي"><strong>${fmtNum(bal)}</strong>${p.balanceDate ? `<div style="font-size:0.72rem; color:var(--muted);">حتى ${fmtDateShort(p.balanceDate)}</div>` : ""}</td>
+        <td data-label="الربح"><span class="${profCls}">${fmtNum(prof)}</span>${inv ? `<div style="font-size:0.74rem; font-weight:800;" class="${profCls}"><bdi dir="ltr">${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%</bdi></div>` : ""}</td>
+        ${acts}</tr>`;
+    }).join("") || `<tr><td colspan="${isAdmin ? 7 : 6}" style="text-align:center; color:var(--muted);">لا توجد محافظ بعد</td></tr>`;
+    const tp = r2(tb - ti), bank = (finData.accounts || []).reduce((s, a) => s + Number(a.balance || 0), 0);
+    foot.innerHTML = `<tr><td colspan="3" class="m-desc">إجمالي المحافظ</td><td data-label="مبلغ الاستثمار">${fmtNum(ti)}</td><td data-label="رصيد المحافظ">${fmtNum(tb)}</td><td data-label="الربح"><span class="${tp > 0 ? "bal-pos" : tp < 0 ? "bal-neg" : ""}">${fmtNum(tp)}</span></td>${isAdmin ? '<td class="m-hide"></td>' : ""}</tr>
+      <tr style="background:#F7E9B8;"><td colspan="4" class="m-desc">إجمالي أموال الأسرة (الأرصدة البنكية ${fmtNum(bank)} + أرصدة المحافظ ${fmtNum(tb)})</td><td data-label="الإجمالي" colspan="${isAdmin ? 3 : 2}"><strong>${fmtNum(bank + tb)}</strong></td></tr>`;
+  }
+
+  // ---- actions ----
+  let invCtx = null;
+  function invOpen(title, info, html) {
+    document.getElementById("invTitle").textContent = title;
+    document.getElementById("invInfo").innerHTML = info;
+    document.getElementById("invForm").innerHTML = html;
+    document.getElementById("invMsg").textContent = "";
+    document.getElementById("invSaveBtn").style.display = invCtx && invCtx.kind === "log" ? "none" : "";
+    document.getElementById("invModal").classList.add("show");
+    setTimeout(invPreview, 30);
+  }
+  function invClose() { document.getElementById("invModal").classList.remove("show"); invCtx = null; }
+  const invField = (label, input) => `<label style="font-weight:800; font-size:0.86rem; display:block; margin-top:10px;">${label}</label>${input}`;
+  const invInput = (id, type, val, extra) => `<input class="rec-input" id="${id}" type="${type}" value="${escHtml(val == null ? "" : String(val))}" oninput="invPreview()" style="width:100%; margin-top:4px;" ${extra || ""}/>`;
+  const invLedgerChk = (label) => `<label class="te-opt" style="margin-top:12px;"><input checked id="invRec" type="checkbox" onchange="invPreview()"/> <span>${label}</span></label>`;
+  function invAction(i, kind) {
+    if (!isAdmin) return;
+    const p = i == null ? null : INV().portfolios[i];
+    invCtx = { i, kind };
+    const info = p ? `<b>${escHtml(p.name)}</b> — مبلغ الاستثمار ${fmtNum(p.invested)} — الرصيد ${fmtNum(p.balance)} — الربح ${fmtNum(r2(p.balance - p.invested))}` : "";
+    const acc = p ? p.source : "المساهمات و الدعم";
+    if (kind === "new" || kind === "edit") {
+      invOpen(kind === "new" ? "➕ إضافة محفظة استثمار" : "✏️ تعديل بيانات المحفظة", info,
+        invField("اسم المحفظة", invInput("invName", "text", p ? p.name : "محفظة استثمار ")) +
+        invField("رقم الآيبان", invInput("invIban", "text", p ? p.iban : "", 'placeholder="SA00 0000 0000 0000 0000 0000" dir="ltr"')) +
+        invField("الحساب البنكي الذي تُموَّل منه وتعود إليه الأرباح", `<select class="rec-input" id="invSource" style="width:100%; margin-top:4px;">${accountOptions(acc)}</select>`) +
+        (kind === "edit" && !(Number(p.invested) || Number(p.balance)) ? `<button class="btn-action btn-outline" onclick="invDelete(${i})" style="margin-top:12px; color:var(--exp-red);" type="button">🗑️ حذف المحفظة</button>` : ""));
+    } else if (kind === "deposit") {
+      invOpen("➕ زيادة مبلغ الاستثمار", info,
+        invField("المبلغ (ر.س)", invInput("invAmt", "number", "", 'min="0.01" step="0.01"')) +
+        invField("التاريخ", invInput("invDate", "date", todayG())) +
+        invField("يُحوَّل من الحساب البنكي", `<select class="rec-input" id="invAcc" onchange="invPreview()" style="width:100%; margin-top:4px;">${accountOptions(acc)}</select>`) +
+        invField("ملاحظة (اختياري)", invInput("invNote", "text", "")) +
+        invLedgerChk("سجّل خصم المبلغ من الحساب البنكي في كشف الإيرادات والمصروفات (أزل العلامة إن كان المبلغ في المحفظة من قبل ولم يخرج من البنك الآن)") +
+        '<div class="te-preview" id="invPrev"></div>');
+    } else if (kind === "withdraw") {
+      invOpen("↩️ سحب من مبلغ الاستثمار", info,
+        invField("المبلغ (ر.س)", invInput("invAmt", "number", "", 'min="0.01" step="0.01"')) +
+        invField("التاريخ", invInput("invDate", "date", todayG())) +
+        invField("يُحوَّل إلى الحساب البنكي", `<select class="rec-input" id="invAcc" onchange="invPreview()" style="width:100%; margin-top:4px;">${accountOptions(acc)}</select>`) +
+        invField("ملاحظة (اختياري)", invInput("invNote", "text", "")) +
+        invLedgerChk("سجّل إيداع المبلغ في الحساب البنكي في كشف الإيرادات والمصروفات") +
+        '<div class="te-preview" id="invPrev"></div>');
+    } else if (kind === "profit") {
+      const prof = Math.max(0, r2(p.balance - p.invested));
+      invOpen("💰 تحويل الأرباح إلى الحساب البنكي", info,
+        invField(`مبلغ الأرباح المحوّلة (ر.س) — الأرباح المتاحة ${fmtNum(prof)}`, invInput("invAmt", "number", prof || "", 'min="0.01" step="0.01"')) +
+        invField("التاريخ", invInput("invDate", "date", todayG())) +
+        invField("يُحوَّل إلى الحساب البنكي", `<select class="rec-input" id="invAcc" onchange="invPreview()" style="width:100%; margin-top:4px;">${accountOptions(acc)}</select>`) +
+        invField("ملاحظة (اختياري)", invInput("invNote", "text", "")) +
+        invLedgerChk(`سجّل الأرباح إيراداً في كشف الإيرادات والمصروفات (بند «${CAT_INV_PROFIT}»)`) +
+        '<div class="te-preview" id="invPrev"></div>');
+    } else if (kind === "value") {
+      invOpen("🔄 تحديث رصيد المحفظة الحالي", info + "<br/>اكتب الرصيد كما يظهر في كشف المحفظة؛ الربح يُحسب تلقائياً.",
+        invField("رصيد المحفظة الحالي (ر.س)", invInput("invAmt", "number", p.balance || "", 'min="0" step="0.01"')) +
+        invField("بتاريخ", invInput("invDate", "date", todayG())) +
+        '<div class="te-preview" id="invPrev"></div>');
+    } else if (kind === "log") {
+      const KIND = { deposit: "➕ زيادة الاستثمار", withdraw: "↩️ سحب", profit: "💰 تحويل أرباح", value: "🔄 تحديث الرصيد", open: "📂 فتح المحفظة" };
+      const rows = (p.moves || []).slice().reverse().map(m => `<tr><td style="white-space:nowrap;">${fmtDateShort(m.date)}</td><td>${KIND[m.kind] || m.kind}</td><td>${fmtNum(m.amount)}</td><td style="font-size:0.8rem;">${escHtml(m.account || "")}${m.ledger ? " ✓ بالكشف" : ""}</td><td style="font-size:0.8rem;">${escHtml(m.note || "")}</td></tr>`).join("");
+      invOpen("📜 سجل حركات المحفظة", info, rows ? `<div class="table-wrapper" style="max-height:55vh; overflow:auto;"><table class="data-table"><thead><tr><th>التاريخ</th><th>الحركة</th><th>المبلغ</th><th>الحساب</th><th>ملاحظة</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div style="color:var(--muted);">لا توجد حركات بعد.</div>');
+    }
+  }
+  function invVals() {
+    const g = id => (document.getElementById(id) || {}).value;
+    return { amt: r2(g("invAmt")), date: g("invDate") || todayG(), acc: g("invAcc"), note: (g("invNote") || "").trim(), rec: !!(document.getElementById("invRec") || {}).checked };
+  }
+  function invMonthOf(date) {
+    const h = gregorianToHijri1448(date), mi = hijriMonthIndexOf(h);
+    const y = String(h || "").split(/[\/\-]/).find(x => x.length === 4);
+    return { h, month: mi >= 0 ? HIJRI_MONTHS_LIST[mi] : null, ok: mi >= 0 && y === activeYear };
+  }
+  function invPreview() {
+    const box = document.getElementById("invPrev");
+    if (!box || !invCtx) return;
+    const p = INV().portfolios[invCtx.i]; if (!p) return;
+    const v = invVals();
+    if (!(v.amt > 0) && invCtx.kind !== "value") { box.innerHTML = "اكتب المبلغ."; return; }
+    const m = invMonthOf(v.date);
+    const led = v.rec ? (m.ok ? ` ويُسجَّل في كشف شهر ${m.month}.` : ` <span style="color:#B42318;">التاريخ خارج السنة ${activeYear}هـ فلن يُسجَّل في الكشف.</span>`) : " (لن يُسجَّل في الكشف)";
+    if (invCtx.kind === "deposit") box.innerHTML = `مبلغ الاستثمار يصبح <b>${fmtNum(r2(p.invested + v.amt))}</b> ورصيد المحفظة <b>${fmtNum(r2(p.balance + v.amt))}</b>.${v.rec ? ` رصيد ${escHtml(v.acc)} ينقص ${fmtNum(v.amt)}` : ""}${led}`;
+    else if (invCtx.kind === "withdraw") box.innerHTML = v.amt > p.balance ? '<span style="color:#B42318;">المبلغ أكبر من رصيد المحفظة.</span>' : `مبلغ الاستثمار يصبح <b>${fmtNum(Math.max(0, r2(p.invested - v.amt)))}</b> ورصيد المحفظة <b>${fmtNum(r2(p.balance - v.amt))}</b>.${v.rec ? ` رصيد ${escHtml(v.acc)} يزيد ${fmtNum(v.amt)}` : ""}${led}`;
+    else if (invCtx.kind === "profit") { const prof = r2(p.balance - p.invested); box.innerHTML = v.amt > prof + 0.001 ? `<span style="color:#B42318;">المبلغ أكبر من الأرباح المتاحة (${fmtNum(prof)}). للسحب من رأس المال استخدم «سحب».</span>` : `رصيد المحفظة يصبح <b>${fmtNum(r2(p.balance - v.amt))}</b> ومبلغ الاستثمار يبقى ${fmtNum(p.invested)}.${v.rec ? ` رصيد ${escHtml(v.acc)} يزيد ${fmtNum(v.amt)}` : ""}${led}`; }
+    else if (invCtx.kind === "value") { const prof = r2((v.amt || 0) - p.invested); box.innerHTML = `الربح يصبح <b class="${prof >= 0 ? "bal-pos" : "bal-neg"}">${fmtNum(prof)}</b>${p.invested ? ` (${(prof / p.invested * 100).toFixed(2)}%)` : ""}.`; }
+  }
+  function invLedgerTx(p, v, kind) {
+    const m = invMonthOf(v.date);
+    if (!v.rec || !m.ok) return false;
+    txData[m.month] = txData[m.month] || [];
+    const isRev = kind !== "deposit";
+    const desc = kind === "deposit" ? `تحويل إلى ${p.name} (زيادة الاستثمار)` : kind === "withdraw" ? `سحب من ${p.name} إلى الحساب` : `تحويل أرباح ${p.name}`;
+    const t = { id: Date.now(), gDate: v.date, hDate: m.h, desc: desc + (v.note ? " — " + v.note : ""), type: "تحويل", rev: isRev ? v.amt : 0, exp: isRev ? 0 : v.amt, account: v.acc, accOverride: true, invest: p.id };
+    if (kind === "profit") t.investProfit = true;
+    txData[m.month].push(t);
+    saveTxAndFin();
+    return true;
+  }
+  function invSave() {
+    if (!invCtx || !isAdmin) return;
+    const msg = document.getElementById("invMsg");
+    const data = portalClone(INV());
+    const k = invCtx.kind;
+    if (k === "new" || k === "edit") {
+      const name = document.getElementById("invName").value.trim(), iban = document.getElementById("invIban").value.replace(/\s+/g, "").toUpperCase(), source = document.getElementById("invSource").value;
+      if (!name) { msg.textContent = "اكتب اسم المحفظة."; return; }
+      if (iban && !/^SA\d{22}$/.test(iban) && !confirm("رقم الآيبان لا يطابق الشكل السعودي (SA + 22 رقماً). هل تحفظه كما هو؟")) return;
+      if (k === "new") data.portfolios.push({ id: "p_" + Date.now(), name, iban, source, invested: 0, balance: 0, balanceDate: "", moves: [{ date: todayG(), kind: "open", amount: 0, note: "" }] });
+      else Object.assign(data.portfolios[invCtx.i], { name, iban, source });
+      invClose(); saveInvest(data); return;
+    }
+    const p = data.portfolios[invCtx.i], v = invVals();
+    if (k === "value") {
+      if (!(v.amt >= 0) || document.getElementById("invAmt").value === "") { msg.textContent = "اكتب الرصيد."; return; }
+      p.balance = v.amt; p.balanceDate = v.date;
+      p.moves.push({ date: v.date, kind: "value", amount: v.amt });
+      invClose(); saveInvest(data); return;
+    }
+    if (!(v.amt > 0)) { msg.textContent = "اكتب المبلغ."; return; }
+    if (k === "withdraw" && v.amt > p.balance) { msg.textContent = "المبلغ أكبر من رصيد المحفظة."; return; }
+    if (k === "profit" && v.amt > r2(p.balance - p.invested) + 0.001) { msg.textContent = "المبلغ أكبر من الأرباح المتاحة."; return; }
+    if (k === "deposit") { p.invested = r2(p.invested + v.amt); p.balance = r2(p.balance + v.amt); }
+    if (k === "withdraw") { p.invested = Math.max(0, r2(p.invested - v.amt)); p.balance = r2(p.balance - v.amt); }
+    if (k === "profit") { p.balance = r2(p.balance - v.amt); }
+    if (!p.balanceDate || v.date > p.balanceDate) p.balanceDate = v.date;
+    const led = invLedgerTx(p, v, k);
+    p.moves.push({ date: v.date, kind: k, amount: v.amt, account: v.acc, note: v.note, ledger: led });
+    invClose(); saveInvest(data);
+  }
+  function invDelete(i) {
+    const data = portalClone(INV()), p = data.portfolios[i];
+    if (!p || !confirm(`حذف «${p.name}»؟`)) return;
+    data.portfolios.splice(i, 1); invClose(); saveInvest(data);
+  }
+
   // ===== Backups (stored by the server in the owner's Google Drive) =====
   let bkCache = [];
   function bkMsg(t, color) { const el = document.getElementById("bkStatus"); if (el) { el.textContent = t; el.style.color = color || "var(--muted)"; } }
@@ -6409,6 +6640,21 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
 <button class="btn-action btn-gold" onclick="teSave()" type="button">💾 حفظ</button>
 <button class="btn-action btn-outline" onclick="teClose()" type="button">إلغاء</button>
 <span id="teMsg" style="color:#B42318; font-weight:800; font-size:0.85rem;"></span>
+</div>
+</div>
+</div>
+<div class="modal-bg" id="invModal" onclick="if(event.target===this) invClose()">
+<div class="modal-box" style="max-width:600px;">
+<div style="display:flex; justify-content:space-between; align-items:center; gap:10px;">
+<h3 id="invTitle"></h3>
+<button class="btn-action btn-outline" onclick="invClose()" type="button">✕</button>
+</div>
+<div id="invInfo" style="font-size:0.84rem; color:var(--muted); font-weight:700;"></div>
+<div id="invForm"></div>
+<div style="display:flex; gap:8px; align-items:center; margin-top:14px;">
+<button class="btn-action btn-gold" id="invSaveBtn" onclick="invSave()" type="button">💾 حفظ</button>
+<button class="btn-action btn-outline" onclick="invClose()" type="button">إغلاق</button>
+<span id="invMsg" style="color:#B42318; font-weight:800; font-size:0.85rem;"></span>
 </div>
 </div>
 </div>

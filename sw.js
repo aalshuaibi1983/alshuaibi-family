@@ -1,6 +1,6 @@
 // Service worker for the family portal: keeps the page shell available and always prefers the newest version.
 // Data is never cached — it is fetched from the server after the access code is entered.
-const CACHE = "alshuaibi-shell-v3";
+const CACHE = "alshuaibi-shell-v4";
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", e => {
