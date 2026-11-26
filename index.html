@@ -2767,6 +2767,20 @@
 
     printBranchSel.innerHTML = `<option value="ALL">جميع الفروع</option>` +
       allBranches.map(n => `<option value="${n}">فرع: ${n}</option>`).join("");
+    populateManualBranches();
+  }
+
+  // Branch list for the "add contributor" form (men's branches first, then any women's branches, then "أخرى")
+  function populateManualBranches() {
+    const sel = document.getElementById("manualContribBranch");
+    if (!sel) return;
+    const cur = sel.value;
+    const men = (contribData.menBranches || []).map(b => String(b.name || "").trim()).filter(Boolean);
+    const women = (contribData.womenList || []).map(w => String(w.branch || "").trim()).filter(n => n && !men.includes(n) && n !== "أخرى");
+    const names = [...new Set(men.concat(women))];
+    sel.innerHTML = '<option value="">اختر الفرع...</option>' + names.map(n => `<option value="${escHtml(n)}">${escHtml(n)}</option>`).join("") + '<option value="أخرى">أخرى (فرع آخر للنساء)</option>';
+    if (cur && [...sel.options].some(o => o.value === cur)) sel.value = cur;
+    if (typeof toggleManualGenderFields === "function") toggleManualGenderFields();
   }
 
   function renderDirectory() {
