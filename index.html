@@ -5167,7 +5167,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
     box.innerHTML = list.map(p => {
       const lines = years.map(y => {
         const r = p.years[y];
-        if (r && r.ok) return `<div class="ms-line" style="color:#1E7B45;">✅ ${y}هـ: مساهمتك مسجّلة${r.amount ? " (" + fmtNum(r.amount) + " ر.س)" : ""} — جزاك الله خيراً</div>`;
+        if (r && r.ok) return `<div class="ms-line" style="color:#1E7B45;">✅ ${y}هـ: مساهمتك مسجّلة — جزاك الله خيراً</div>`;
         if (r && r.exempt) return `<div class="ms-line" style="color:#5C6B5E;">ℹ️ ${y}هـ: ${escHtml(r.exempt)}</div>`;
         if (r && r.pending) return `<div class="ms-line" style="color:#B42318;">⏳ ${y}هـ: لم تُسجَّل مساهمتك بعد</div>`;
         return `<div class="ms-line" style="color:#5C6B5E;">— ${y}هـ: لا يوجد تسجيل لهذه السنة</div>`;
