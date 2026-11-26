@@ -2841,16 +2841,26 @@
           <div class="table-wrap" style="border:none; border-radius:0;">
             <table>
               <thead>
-                <tr><th>م</th><th>الاسم</th><th>الفرع</th></tr>
+                <tr><th>م</th><th>الاسم</th><th>الفرع</th><th>المساهمة (ر.س)</th><th>الدعم (ر.س)</th><th>الإجمالي (ر.س)</th>${isAdmin ? "<th>إجراء</th>" : ""}</tr>
               </thead>
               <tbody>
                 ${wFiltered.map((w, idx) => `<tr>
                   <td style="width:50px;">${idx + 1}</td>
                   <td class="text-right" style="font-weight:700;">${w.name}</td>
                   <td>${w.branch || "—"}</td>
+                  <td class="rev-val">${fmtNum(Number(w.contribution || 0))}</td>
+                  <td class="rev-val">${Number(w.support || 0) ? fmtNum(Number(w.support)) : "—"}</td>
+                  <td style="font-weight:800;">${fmtNum(Number(w.contribution || 0) + Number(w.support || 0))}</td>
                   ${isAdmin ? `<td style="width:60px;"><button type="button" onclick="deleteContributorItem('women', '${(w.branch || "").replace(/'/g, "\'")}', ${Number(w.id || 0)}, '${w.name.replace(/'/g, "\'")}')" style="background:none;border:none;color:var(--exp-red);cursor:pointer;font-size:0.85rem;" title="حذف">🗑️</button></td>` : ''}
                 </tr>`).join("")}
               </tbody>
+              <tfoot><tr>
+                <td colspan="3">إجمالي مساهمات ودعم النساء (${wFiltered.length})</td>
+                <td class="rev-val">${fmtNum(wFiltered.reduce((a, w) => a + Number(w.contribution || 0), 0))}</td>
+                <td class="rev-val">${fmtNum(wFiltered.reduce((a, w) => a + Number(w.support || 0), 0))}</td>
+                <td>${fmtNum(wFiltered.reduce((a, w) => a + Number(w.contribution || 0) + Number(w.support || 0), 0))}</td>
+                ${isAdmin ? "<td></td>" : ""}
+              </tr></tfoot>
             </table>
           </div>
         </div>`;
