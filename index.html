@@ -324,6 +324,25 @@
   .inv-acts .att-btn { flex:0 0 auto; }
   #sec-invest td.m-desc { min-width:170px; }
 
+  .ev-stats { display:grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap:8px; }
+  .ev-stat { background:#FFF; border:1px solid var(--border); border-radius:12px; padding:10px; text-align:center; }
+  .ev-stat span { display:block; font-size:0.76rem; color:var(--muted); font-weight:800; }
+  .ev-stat b { font-size:1.15rem; color:var(--primary-dark); }
+  .ev-stat.gold { background:#FFFBEA; border-color:#F0DFA6; } .ev-stat.green b { color:#1E7B45; } .ev-stat.red b { color:#B42318; }
+  .ev-fees summary { cursor:pointer; font-size:0.85rem; font-weight:800; color:var(--primary); }
+  .ev-fees label { display:flex; flex-direction:column; font-size:0.78rem; font-weight:800; gap:3px; } .ev-fees input { width:110px; }
+  .ev-hint { font-size:0.84rem; font-weight:700; color:#6B5200; margin:8px 0 4px; min-height:1em; }
+  .ev-q { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0; padding:8px 10px; border-radius:12px; border:1px dashed transparent; }
+  .ev-q.ask { border-color:#E8B33A; background:#FFF6E0; animation: evPulse 1.2s ease-in-out 2; }
+  @keyframes evPulse { 50% { box-shadow:0 0 0 4px rgba(232,179,58,0.35); } }
+  .ev-q-l { font-weight:900; font-size:0.88rem; min-width:150px; color:var(--primary-dark); }
+  .ev-opt { display:flex; gap:6px; align-items:center; border:1px solid var(--border); border-radius:10px; padding:8px 12px; cursor:pointer; background:#FFF; font-size:0.88rem; font-weight:700; }
+  .ev-opt:has(input:checked) { border-color:var(--gold); background:#FFFBEA; box-shadow:0 0 0 2px rgba(201,162,39,0.25); }
+  .ev-toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; } .ev-toolbar input { flex:1; min-width:200px; }
+  .ev-toolbar select, .ev-print select { width:auto !important; max-width:260px; flex:0 0 auto; }
+  .ev-print { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); }
+  @media (max-width: 900px) { .ev-stats { grid-template-columns: repeat(2, minmax(0,1fr)); } .ev-stats .ev-stat:first-child { grid-column: 1 / -1; } }
+
   /* Update Date Banner */
   .update-banner {
     background: var(--gold-bg); border-bottom: 1px solid #E8D8A0;
@@ -883,6 +902,7 @@
 <button class="nav-tab" id="tabLedgerBtn" onclick="switchView('ledger')">📝 كشف الإيرادات والمصروفات</button>
 <button class="nav-tab" id="tabContribBtn" onclick="switchView('contributors')">👥 المساهمون</button>
 <button class="nav-tab" id="tabSupportersBtn" onclick="switchView('supporters')">🌟 صفحة الداعمين</button>
+<button class="nav-tab" id="tabEventsBtn" onclick="switchView('events')" style="display:none;">🎉 الفعاليات</button>
 </div>
 <button class="btn-pill btn-admin" id="adminToggleBtn" onclick="openAdminGate()"></button>
 <button class="btn-pill" onclick="lockApp()">🔒 قفل</button>
@@ -1670,6 +1690,85 @@
 </div>
 </div>
 </div>
+<!-- Events (admin only) -->
+<div id="eventsView" style="display: none;">
+<div class="page-updated">🎉 صفحة خاصة بالمدير — لا تظهر للأعضاء. كل مبلغ مدفوع يُسجَّل تلقائياً إيراداً في كشف الإيرادات والمصروفات (حساب المساهمات و الدعم، بند «رسوم الفعاليات والاشتراكات»).</div>
+<div class="section-card">
+<div class="section-title"><span id="evTitle">فعالية القرقيعان</span>
+<details class="ev-fees"><summary>⚙️ الرسوم</summary>
+<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:end; margin-top:8px;">
+<label>بنت مساهم<input class="rec-input" id="evFeeContrib" min="0" step="1" type="number"/></label>
+<label>بنت غير مساهم<input class="rec-input" id="evFeeNon" min="0" step="1" type="number"/></label>
+<label>العاملة<input class="rec-input" id="evFeeMaid" min="0" step="1" type="number"/></label>
+<button class="btn-action btn-gold" onclick="evSaveFees()" type="button">حفظ</button><span id="evFeeMsg" style="color:var(--rev-green); font-weight:800;"></span>
+</div></details>
+</div>
+<div class="ev-stats" id="evStats"></div>
+</div>
+<div class="section-card" id="evFormCard">
+<div class="section-title"><span id="evFormTitle">➕ تسجيل طفلة</span></div>
+<form id="evForm" onsubmit="return window.evSubmit(event)">
+<div class="tx-form-grid">
+<div class="tx-field" style="grid-column: span 2;"><label>اسم الطفلة *</label><input autocomplete="off" id="evName" oninput="evHint()" placeholder="مثال: نورة محمد عبدالله الشعيبي" required="" type="text"/></div>
+<div class="tx-field"><label>الفرع *</label><select id="evBranch" onchange="evBranchChanged()" required=""></select></div>
+<div class="tx-field" id="evFamilyBox" style="display:none;"><label>اسم أسرة الطفلة *</label><input id="evFamily" placeholder="مثال: الملحم" type="text"/></div>
+<div class="tx-field"><label id="evMotherLbl">اسم والدة الطفلة (اختياري)</label><input id="evMother" placeholder="اسم الوالدة" type="text"/></div>
+</div>
+<div class="ev-hint" id="evHint"></div>
+<div class="ev-q">
+<div class="ev-q-l">الاستحقاق *</div>
+<label class="ev-opt"><input name="evCat" onchange="evFormPreview()" type="radio" value="contrib"/><span>بنت مساهم <b><span data-evfee="contrib">25</span> ر.س</b></span></label>
+<label class="ev-opt"><input name="evCat" onchange="evFormPreview()" type="radio" value="non"/><span>بنت غير مساهم <b><span data-evfee="non">50</span> ر.س</b></span></label>
+</div>
+<div class="ev-q" id="evMaidQ">
+<div class="ev-q-l">هل مع الطفلة عاملة؟ *</div>
+<label class="ev-opt"><input name="evMaid" onchange="evFormPreview(); document.getElementById('evMaidQ').classList.remove('ask')" type="radio" value="yes"/><span>نعم — رسوم العاملة <b><span data-evfee="maid">50</span> ر.س</b></span></label>
+<label class="ev-opt"><input name="evMaid" onchange="evFormPreview(); document.getElementById('evMaidQ').classList.remove('ask')" type="radio" value="no"/><span>لا</span></label>
+</div>
+<div class="tx-form-grid">
+<div class="tx-field"><label>المبلغ المدفوع (ر.س)</label><input id="evPaid" min="0" oninput="evFormPreview()" placeholder="0" step="0.01" type="number"/></div>
+<div class="tx-field" style="grid-column: span 2;"><label>ملاحظة (اختياري)</label><input id="evNote" type="text"/></div>
+</div>
+<div class="te-preview" id="evPrev"></div>
+<div style="display:flex; gap:8px; align-items:center; margin-top:12px; flex-wrap:wrap;">
+<button class="btn-action btn-gold" id="evSubmitBtn" type="submit">💾 حفظ وإضافة</button>
+<button class="btn-action btn-outline" id="evCancel" onclick="evResetForm()" style="display:none;" type="button">إلغاء التعديل</button>
+<span id="evMsg" style="color:#B42318; font-weight:800; font-size:0.86rem;"></span>
+</div>
+</form>
+</div>
+<div class="section-card">
+<div class="section-title"><span>📋 كشف المشاركات</span></div>
+<div class="ev-toolbar">
+<input class="rec-input" id="evSearch" oninput="renderEvents()" placeholder="🔍 بحث بالاسم أو اسم الوالدة..." type="search"/>
+<select class="rec-input" id="evFilterBranch" onchange="renderEvents()"></select>
+<select class="rec-input" id="evFilterStatus" onchange="renderEvents()">
+<option value="">كل الحالات</option><option value="due">عليها مبلغ متبقٍ</option><option value="paid">مسددة بالكامل</option>
+<option value="contrib">بنات المساهمين</option><option value="non">بنات غير المساهمين</option><option value="maid">مع عاملة</option>
+</select>
+</div>
+<div class="table-wrap mcards">
+<table>
+<thead><tr><th>م</th><th>اسم الطفلة</th><th>الفرع / الأسرة</th><th>اسم الوالدة</th><th>الاستحقاق</th><th>العاملة</th><th>المستحق</th><th>المدفوع</th><th>الفرق</th><th>إجراء</th></tr></thead>
+<tbody id="evBody"></tbody>
+<tfoot id="evFoot"></tfoot>
+</table>
+</div>
+<div class="ev-print">
+<span style="font-weight:900;">🖨️ الطباعة:</span>
+<select class="rec-input" id="evPrintKind">
+<option value="full">الكشف المالي الكامل</option>
+<option value="branches">كشف حسب الفروع (كل فرع في صفحة)</option>
+<option value="due">المتبقي عليهم مبالغ فقط</option>
+<option value="attend">كشف الحضور والتسليم (بدون مبالغ)</option>
+<option value="summary">الملخص المالي حسب الفروع</option>
+</select>
+<select class="rec-input" id="evPrintBranch"></select>
+<button class="btn-action btn-gold" onclick="evPrint()" type="button">🖨️ طباعة / PDF</button>
+<button class="btn-action btn-green" onclick="evExcel()" type="button">📊 تصدير Excel</button>
+</div>
+</div>
+</div>
 <!-- Admin PIN Modal -->
 <div class="modal-backdrop" id="adminModal">
 <div class="modal-box">
@@ -1792,6 +1891,7 @@
     if (key === "noncontrib") return nonContrib;
     if (key === "settings") return portalSettings;
     if (key === "invest") return investData;
+    if (key === "events") return eventsData;
     if (key === "bankrec") return bankRec;
     const k = parseYearKey(key);
     if (!k) return null;
@@ -1876,6 +1976,13 @@
     if (!data || typeof data !== "object") return;
     let activeChanged = false, activeFinChanged = false;
     Object.keys(data).forEach(key => {
+      if (key === "events" && data[key] != null) {
+        const json = JSON.stringify(data[key]);
+        if (portalLastJson[key] === json || portalDirty.has(key)) return;
+        portalLastJson[key] = json;
+        if (typeof data[key] === "object") { eventsData = portalClone(data[key]); setTimeout(renderEvents, 0); }
+        return;
+      }
       if (key === "invest" && data[key] != null) {
         const json = JSON.stringify(data[key]);
         if (portalLastJson[key] === json || portalDirty.has(key)) return;
@@ -2407,7 +2514,7 @@
   function setAdminState(flag) {
     isAdmin = !!flag;
     if (!isAdmin) portalAdminPin = "";
-    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); initTxFormDate(); setTimeout(fixFeeAccounts, 1500); initAdminTabs(); setTimeout(autoMonthlyReport, 2500); }, 100); }
+    else { setTimeout(portalSeedMissing, 0); setTimeout(loadBackupList, 400); setTimeout(() => { renderBankRec(); renderChangeLog(); renderNewYearNote(); renderNonContrib(); renderSettingsBox(); renderReportsBox(); updateTxFormExtras(); initTxFormDate(); setTimeout(fixFeeAccounts, 1500); initAdminTabs(); document.getElementById('tabEventsBtn').style.display = ''; renderEvents(); setTimeout(autoMonthlyReport, 2500); }, 100); }
     const panel = document.getElementById("adminPanel");
     const btn = document.getElementById("adminToggleBtn");
     const badge = document.getElementById("roleBadge");
@@ -2492,6 +2599,9 @@
     document.getElementById("ledgerView").style.display = view === "ledger" ? "block" : "none";
     document.getElementById("contributorsView").style.display = view === "contributors" ? "block" : "none";
     document.getElementById("supportersView").style.display = view === "supporters" ? "block" : "none";
+    document.getElementById("eventsView").style.display = view === "events" && isAdmin ? "block" : "none";
+    document.getElementById("tabEventsBtn").classList.toggle("active", view === "events");
+    if (view === "events") renderEvents();
 
     document.getElementById("tabFinanceBtn").classList.toggle("active", view === "finance");
     document.getElementById("tabLedgerBtn").classList.toggle("active", view === "ledger");
@@ -4538,6 +4648,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
         else if (isAdmin && needsApproval(tx)) extra += ` <button type="button" class="appr-need" onclick="approveTx('${rowMonth}', ${origIdx})">⏳ بحاجة اعتماد</button>`;
       }
       if (!isAdmin && pubN) extra += ` <button type="button" class="att-pub-btn" onclick="openAttModal('${rowMonth}', ${origIdx})">📎 المرفقات (${pubN})</button>`;
+      if (tx.evId) extra += ` <span class="cat-chip" style="background:#F3E8FF; color:#6B21A8; border-color:#E9D5FF;">🎉 من صفحة الفعاليات</span>`;
       if (isAdmin && tx.rcpt) extra += ` <span class="cat-chip" style="background:#EEF3EE; color:var(--primary-dark); border-color:#C9D6C9;">🧾 ${escHtml(tx.rcpt)}</span>`;
       const adminCell = isAdmin
         ? `<td class="m-actions" style="white-space:nowrap;"><button type="button" class="btn-action btn-outline att-btn" title="تعديل المبلغ أو البيان" onclick="editTxAmount('${rowMonth}', ${origIdx})">✏️</button> ${feeBtn}${rcptBtn}<button type="button" class="btn-action btn-outline att-btn${attN ? " att-has" : ""}" title="الفواتير والإيصالات" onclick="openAttModal('${rowMonth}', ${origIdx})">📎${invN ? " " + invN : ""}${ordN ? " · 📝 " + ordN : ""}</button> <button type="button" class="btn-action btn-outline" style="padding:3px 8px; font-size:0.78rem; color:var(--exp-red);" onclick="deleteTransaction('${rowMonth}', ${origIdx})">🗑️ حذف</button></td>`
@@ -4859,7 +4970,7 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
   // =====================================================================
   let changeLog = [];
   let bankRec = {};
-  const PART_LABEL = { invest: "محافظ الاستثمار", settings: "الإعدادات", noncontrib: "غير المساهمين", tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
+  const PART_LABEL = { events: "الفعاليات", invest: "محافظ الاستثمار", settings: "الإعدادات", noncontrib: "غير المساهمين", tx: "الإيرادات والمصروفات", supporters: "الداعمون", contrib: "المساهمون", fin: "الحسابات", bankrec: "المطابقة البنكية", meta: "" };
   const escHtml = t => String(t == null ? "" : t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
   const money = v => fmtNum(Number(v || 0)) + " ر.س";
 
@@ -4885,6 +4996,22 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       });
       if (!out.length && oldJson && JSON.stringify(old.template) !== JSON.stringify((newVal || {}).template)) out.push({ t: now, y: "", p: "noncontrib", d: "تعديل نص رسالة التذكير" });
       return out;
+    }
+    if (key === "events") {
+      const o = oldJson ? JSON.parse(oldJson) : { list: [] }, n = newVal || { list: [] }, out = [];
+      (n.list || []).forEach(ev => {
+        const oe = (o.list || []).find(x => x.id === ev.id) || { entries: [], fees: ev.fees };
+        const om = {}; (oe.entries || []).forEach(x => { om[x.id] = x; });
+        (ev.entries || []).forEach(x => {
+          const p = om[x.id];
+          if (!p) out.push({ t: now, y: ev.year, p: "events", d: `${ev.title}: تسجيل ${x.name} — مدفوع ${money(x.paid || 0)}` });
+          else if (JSON.stringify(p) !== JSON.stringify(x)) out.push({ t: now, y: ev.year, p: "events", d: `${ev.title}: تعديل ${x.name}${p.paid !== x.paid ? ` — المدفوع ${money(p.paid || 0)} ← ${money(x.paid || 0)}` : ""}` });
+          delete om[x.id];
+        });
+        Object.values(om).forEach(x => out.push({ t: now, y: ev.year, p: "events", d: `${ev.title}: حذف ${x.name}` }));
+        if (JSON.stringify(oe.fees) !== JSON.stringify(ev.fees)) out.push({ t: now, y: ev.year, p: "events", d: `${ev.title}: تعديل الرسوم (مساهم ${ev.fees.contrib}، غير مساهم ${ev.fees.non}، عاملة ${ev.fees.maid})` });
+      });
+      return out.slice(0, 30);
     }
     if (key === "invest") {
       const o = oldJson ? JSON.parse(oldJson) : { portfolios: [] }, n = newVal || { portfolios: [] }, out = [];
@@ -6374,6 +6501,289 @@ ${autoPrint ? `<script>window.addEventListener("load", function(){ setTimeout(fu
       const unpaid = ((nonContrib && nonContrib.people) || []).filter(p => (p.years || {})[y] === true && !(p.exempt && p.exempt !== "غير معفي")).length;
       set("admBadgeContrib", unpaid, "غير مساهمين لهذه السنة");
     } catch (e) {}
+  }
+
+
+  // =====================================================================
+  // Events page (فعالية القرقيعان) — global key "events", admin only
+  // =====================================================================
+  const EV_DEFAULT = () => ({ current: "qurqi_1448", list: [{ id: "qurqi_1448", title: "فعالية القرقيعان", year: "1448", date: "", fees: { contrib: 25, non: 50, maid: 50 }, entries: [] }] });
+  const EV_OTHER = "__other__";
+  let eventsData = null, evEditId = null;
+  function EVD() { return eventsData && Array.isArray(eventsData.list) && eventsData.list.length ? eventsData : EV_DEFAULT(); }
+  function EVC() { const d = EVD(); return d.list.find(e => e.id === d.current) || d.list[0]; }
+  function evSave(mutator) {
+    const d = portalClone(EVD());
+    const ev = d.list.find(e => e.id === d.current) || d.list[0];
+    mutator(ev, d);
+    eventsData = d;
+    portalDirty.add("events"); clearTimeout(portalFlushTimer); portalFlushTimer = setTimeout(portalFlush, 400);
+    evSyncLedger(ev);
+    renderEvents();
+  }
+  // Every paid amount is a revenue line in the ledger (contributions account), one line per girl, kept in sync.
+  const EV_ACCOUNT = "المساهمات و الدعم";
+  function evSyncLedger(ev) {
+    if (!isAdmin || !txData || String(ev.year) !== String(activeYear)) return 0;
+    const linked = {};
+    Object.keys(txData).forEach(m => (txData[m] || []).forEach((t, i) => { if (t.evId && t.evEvent === ev.id) linked[t.evId] = { m, t }; }));
+    let changed = 0;
+    const today = todayG(), hm = invMonthOf(today);
+    ev.entries.forEach(en => {
+      const paid = r2(en.paid || 0), cur = linked[en.id];
+      const desc = `رسوم ${ev.title} — ${en.name}${en.maid ? " (مع عاملة)" : ""}`;
+      if (paid > 0) {
+        if (cur) {
+          if (r2(cur.t.rev) !== paid || cur.t.desc !== desc) { cur.t.rev = paid; cur.t.desc = desc; changed++; }
+        } else {
+          const month = hm.ok ? hm.month : selectedLedgerMonth !== LEDGER_ALL ? selectedLedgerMonth : HIJRI_MONTHS_LIST[0];
+          (txData[month] = txData[month] || []).push({ id: Date.now() + changed, gDate: today, hDate: hm.h, desc, type: "رسوم", rev: paid, exp: 0, account: EV_ACCOUNT, accOverride: true, rcat: "رسوم الفعاليات والاشتراكات", evEvent: ev.id, evId: en.id });
+          changed++;
+        }
+      } else if (cur) { txData[cur.m] = txData[cur.m].filter(x => x !== cur.t); changed++; }
+      delete linked[en.id];
+    });
+    Object.values(linked).forEach(({ m, t }) => { txData[m] = txData[m].filter(x => x !== t); changed++; });   // deleted girls
+    if (changed) saveTxAndFin();
+    return changed;
+  }
+  function evBranches() {
+    const men = (contribData.menBranches || []).map(b => String(b.name || "").trim()).filter(Boolean);
+    return men.length ? men : ["البراهيم", "الرئيس", "العبداللطيف", "العبدالله", "العبدالله بن عبدالله", "العبدالوهاب", "العثمان", "العيسى"];
+  }
+  function evCalc(en, ev) {
+    const f = (ev || EVC()).fees;
+    const fee = Number(en.cat === "contrib" ? f.contrib : f.non) || 0;
+    const maidFee = en.maid ? Number(f.maid) || 0 : 0;
+    const due = r2(fee + maidFee), paid = r2(en.paid || 0);
+    return { fee, maidFee, due, paid, diff: r2(due - paid) };
+  }
+  function evFamily(en) { return en.branch === EV_OTHER ? (en.family || "أسرة أخرى") : en.branch; }
+  // Is the girl's father (her 2nd–4th name) a recorded contributor this year?
+  function evFatherMatch(name) {
+    const t = nameTokens(name);
+    if (t.length < 3) return null;
+    const want = t.slice(1, 4);
+    const hit = yearContributors(activeYear).find(p => p.gender === "m" && tokensStartWith(nameTokens(p.name), want.slice(0, Math.min(3, want.length))));
+    return hit || false;
+  }
+
+  function renderEvents() {
+    const view = document.getElementById("eventsView");
+    if (!view || !isAdmin) return;
+    const ev = EVC();
+    document.getElementById("evTitle").textContent = `${ev.title} ${ev.year}هـ`;
+    document.getElementById("evFeeContrib").value = ev.fees.contrib;
+    document.getElementById("evFeeNon").value = ev.fees.non;
+    document.getElementById("evFeeMaid").value = ev.fees.maid;
+    document.querySelectorAll("[data-evfee]").forEach(el => { el.textContent = fmtNum(ev.fees[el.dataset.evfee]).replace(".00", ""); });
+    // branch selects
+    const bs = evBranches();
+    const fb = document.getElementById("evBranch");
+    if (fb && fb.dataset.n !== String(bs.length)) {
+      fb.dataset.n = bs.length;
+      fb.innerHTML = '<option value="">اختر الفرع...</option>' + bs.map(b => `<option value="${escHtml(b)}">${escHtml(b)}</option>`).join("") + `<option value="${EV_OTHER}">أسرة أخرى (من خارج الأسرة)…</option>`;
+    }
+    const filt = document.getElementById("evFilterBranch"), pfilt = document.getElementById("evPrintBranch");
+    const fams = [...new Set(bs.concat(ev.entries.filter(e => e.branch === EV_OTHER).map(evFamily)))];
+    [filt, pfilt].forEach(sel => { if (!sel) return; const cur = sel.value; sel.innerHTML = '<option value="">كل الفروع</option>' + fams.map(b => `<option value="${escHtml(b)}">${escHtml(b)}</option>`).join(""); if (fams.includes(cur)) sel.value = cur; });
+    // stats
+    const all = ev.entries.map(en => Object.assign({ en }, evCalc(en, ev)));
+    const sum = k => r2(all.reduce((s, x) => s + x[k], 0));
+    const stat = (lbl, val, cls) => `<div class="ev-stat ${cls || ""}"><span>${lbl}</span><b>${val}</b></div>`;
+    document.getElementById("evStats").innerHTML =
+      stat("عدد الأطفال", fmtInt(all.length)) +
+      stat("بنات المساهمين", fmtInt(all.filter(x => x.en.cat === "contrib").length)) +
+      stat("بنات غير المساهمين", fmtInt(all.filter(x => x.en.cat !== "contrib").length)) +
+      stat("مع عاملة", fmtInt(all.filter(x => x.en.maid).length)) +
+      stat("إجمالي المستحق", fmtNum(sum("due")), "gold") +
+      stat("إجمالي المدفوع", fmtNum(sum("paid")), "green") +
+      stat("المتبقي (الفرق)", fmtNum(sum("diff")), sum("diff") > 0 ? "red" : "green");
+    // table
+    const q = nameTokens((document.getElementById("evSearch") || {}).value || "");
+    const fbv = (filt || {}).value || "", st = (document.getElementById("evFilterStatus") || {}).value || "";
+    const rows = all.filter(x => (!fbv || evFamily(x.en) === fbv) && (!q.length || q.every(w => nameTokens(x.en.name + " " + (x.en.mother || "")).includes(w)))
+      && (!st || (st === "due" ? x.diff > 0 : st === "paid" ? x.diff <= 0 : st === "contrib" ? x.en.cat === "contrib" : st === "non" ? x.en.cat !== "contrib" : st === "maid" ? x.en.maid : true)));
+    const body = document.getElementById("evBody");
+    body.innerHTML = rows.length ? rows.map((x, i) => {
+      const en = x.en;
+      const diffCls = x.diff > 0 ? "bal-neg" : x.diff < 0 ? "bal-pos" : "";
+      return `<tr>
+        <td class="m-hide">${i + 1}</td>
+        <td class="text-right m-desc" style="font-weight:800;">${escHtml(en.name)}${en.note ? `<div style="font-size:0.74rem; color:var(--muted);">${escHtml(en.note)}</div>` : ""}</td>
+        <td data-label="الفرع / الأسرة">${escHtml(evFamily(en))}${en.branch === EV_OTHER ? ' <span class="cat-chip" style="margin:0;">من خارج الأسرة</span>' : ""}</td>
+        <td data-label="اسم الوالدة">${escHtml(en.mother || "—")}</td>
+        <td data-label="الاستحقاق"><span class="nc-chip ${en.cat === "contrib" ? "nc-paid" : "nc-match"}">${en.cat === "contrib" ? "بنت مساهم" : "بنت غير مساهم"}</span> ${fmtNum(x.fee).replace(".00", "")}</td>
+        <td data-label="العاملة">${en.maid ? `نعم — ${fmtNum(x.maidFee).replace(".00", "")}` : "لا"}</td>
+        <td data-label="المستحق" style="font-weight:800;">${fmtNum(x.due)}</td>
+        <td data-label="المدفوع" class="rev-val">${fmtNum(x.paid)}</td>
+        <td data-label="الفرق"><span class="${diffCls}" style="font-weight:800;">${x.diff > 0 ? fmtNum(x.diff) : x.diff < 0 ? "زيادة " + fmtNum(-x.diff) : "✓ مسدد"}</span></td>
+        <td class="m-actions" style="white-space:nowrap;">
+          ${x.diff > 0 ? `<button type="button" class="btn-action btn-outline att-btn" title="تسجيل سداد الفرق" onclick="evPayFull('${en.id}')">💵 سداد</button>` : ""}
+          <button type="button" class="btn-action btn-outline att-btn" title="تعديل" onclick="evEdit('${en.id}')">✏️</button>
+          <button type="button" class="btn-action btn-outline att-btn" style="color:var(--exp-red);" title="حذف" onclick="evDelete('${en.id}')">🗑️</button></td>
+      </tr>`;
+    }).join("") : `<tr><td colspan="10" style="text-align:center; color:var(--muted);">${all.length ? "لا توجد نتائج بهذه التصفية" : "لم تُسجَّل أي طفلة بعد — ابدأ من النموذج أعلاه"}</td></tr>`;
+    const rs = k => r2(rows.reduce((s, x) => s + x[k], 0));
+    document.getElementById("evFoot").innerHTML = `<tr><td colspan="6" class="m-desc">الإجمالي (${rows.length})</td><td data-label="المستحق">${fmtNum(rs("due"))}</td><td data-label="المدفوع">${fmtNum(rs("paid"))}</td><td data-label="الفرق">${fmtNum(rs("diff"))}</td><td class="m-hide"></td></tr>`;
+    evFormPreview();
+  }
+
+  // ---- form ----
+  function evBranchChanged() {
+    const other = document.getElementById("evBranch").value === EV_OTHER;
+    document.getElementById("evFamilyBox").style.display = other ? "" : "none";
+    document.getElementById("evMotherLbl").textContent = other ? "اسم والدة الطفلة (من الأسرة) *" : "اسم والدة الطفلة (اختياري)";
+    document.getElementById("evMother").required = other;
+    evHint();
+  }
+  function evRadio(name) { return (document.querySelector(`input[name="${name}"]:checked`) || {}).value || ""; }
+  function evHint() {
+    const box = document.getElementById("evHint");
+    const name = document.getElementById("evName").value.trim(), br = document.getElementById("evBranch").value;
+    if (!name || br === EV_OTHER) { box.innerHTML = br === EV_OTHER ? "الطفلة من خارج الأسرة — حدد الاستحقاق حسب مساهمة والدتها أو حسب ما يقرره المجلس." : ""; evFormPreview(); return; }
+    const hit = evFatherMatch(name);
+    if (hit) {
+      box.innerHTML = `💡 والدها «${escHtml(shortName(hit.name))}» مسجّل ضمن المساهمين لعام ${activeYear}هـ.`;
+      if (!evRadio("evCat") && !evEditId) document.querySelector('input[name="evCat"][value="contrib"]').checked = true;
+    } else if (hit === false) box.innerHTML = `لم نجد والدها ضمن المساهمين لعام ${activeYear}هـ — تأكد قبل اختيار الاستحقاق.`;
+    else box.innerHTML = "اكتب الاسم الثلاثي على الأقل ليتحقق النظام من مساهمة الوالد.";
+    // ask about the maid once a name is typed
+    document.getElementById("evMaidQ").classList.toggle("ask", !evRadio("evMaid"));
+    evFormPreview();
+  }
+  function evFormPreview() {
+    const box = document.getElementById("evPrev");
+    if (!box) return;
+    const ev = EVC(), cat = evRadio("evCat"), maid = evRadio("evMaid");
+    const en = { cat, maid: maid === "yes", paid: Number(document.getElementById("evPaid").value || 0) };
+    const c = evCalc(en, ev);
+    box.innerHTML = !cat ? "اختر الاستحقاق لحساب المبلغ." :
+      `رسوم الطفلة <b>${fmtNum(c.fee)}</b>${en.maid ? ` + رسوم العاملة <b>${fmtNum(c.maidFee)}</b>` : ""} = المستحق <b>${fmtNum(c.due)}</b> — المدفوع <b>${fmtNum(c.paid)}</b> — الفرق <b class="${c.diff > 0 ? "bal-neg" : "bal-pos"}">${c.diff > 0 ? fmtNum(c.diff) + " متبقٍ" : c.diff < 0 ? "زيادة " + fmtNum(-c.diff) : "مسدد بالكامل ✓"}</b>`;
+  }
+  function evResetForm() {
+    evEditId = null;
+    document.getElementById("evForm").reset();
+    document.getElementById("evFormTitle").textContent = "➕ تسجيل طفلة";
+    document.getElementById("evSubmitBtn").textContent = "💾 حفظ وإضافة";
+    document.getElementById("evCancel").style.display = "none";
+    evBranchChanged();
+    document.getElementById("evMaidQ").classList.remove("ask");
+    document.getElementById("evHint").innerHTML = "";
+  }
+  function evSubmit(e) {
+    e.preventDefault();
+    const g = id => document.getElementById(id).value.trim();
+    const name = g("evName"), branch = document.getElementById("evBranch").value, family = g("evFamily"), mother = g("evMother");
+    const cat = evRadio("evCat"), maid = evRadio("evMaid"), msg = document.getElementById("evMsg");
+    msg.textContent = "";
+    if (!name || !branch) { msg.textContent = "اكتب اسم الطفلة واختر الفرع."; return false; }
+    if (branch === EV_OTHER && (!family || !mother)) { msg.textContent = "للطفلة من خارج الأسرة: اكتب اسم أسرتها واسم والدتها."; return false; }
+    if (!cat) { msg.textContent = "اختر الاستحقاق (بنت مساهم أو غير مساهم)."; return false; }
+    if (!maid) { msg.textContent = "هل مع الطفلة عاملة؟ اختر نعم أو لا."; document.getElementById("evMaidQ").classList.add("ask"); return false; }
+    const rec = { name, branch, family: branch === EV_OTHER ? family : "", mother, cat, maid: maid === "yes", paid: r2(document.getElementById("evPaid").value || 0), note: g("evNote") };
+    const dup = !evEditId && EVC().entries.some(x => normAr(x.name) === normAr(name));
+    if (dup && !confirm(`الاسم «${name}» مسجّل من قبل. هل تضيفه مرة أخرى؟`)) return false;
+    const editing = evEditId;
+    evSave(ev => {
+      if (editing) Object.assign(ev.entries.find(x => x.id === editing) || {}, rec);
+      else ev.entries.push(Object.assign({ id: "k" + Date.now(), at: new Date().toISOString() }, rec));
+    });
+    const keepBranch = branch;
+    evResetForm();
+    if (!editing && keepBranch !== EV_OTHER) { document.getElementById("evBranch").value = keepBranch; evBranchChanged(); }
+    msg.style.color = "var(--rev-green)"; msg.textContent = editing ? "✅ تم حفظ التعديل" : `✅ أُضيفت «${name}»`; setTimeout(() => { msg.textContent = ""; msg.style.color = ""; }, 3500);
+    document.getElementById("evName").focus();
+    return false;
+  }
+  function evEdit(id) {
+    const en = EVC().entries.find(x => x.id === id);
+    if (!en) return;
+    evResetForm(); evEditId = id;
+    document.getElementById("evName").value = en.name;
+    document.getElementById("evBranch").value = en.branch;
+    document.getElementById("evFamily").value = en.family || "";
+    document.getElementById("evMother").value = en.mother || "";
+    document.getElementById("evPaid").value = en.paid || "";
+    document.getElementById("evNote").value = en.note || "";
+    const c = document.querySelector(`input[name="evCat"][value="${en.cat}"]`); if (c) c.checked = true;
+    const m = document.querySelector(`input[name="evMaid"][value="${en.maid ? "yes" : "no"}"]`); if (m) m.checked = true;
+    document.getElementById("evFormTitle").textContent = "✏️ تعديل بيانات: " + en.name;
+    document.getElementById("evSubmitBtn").textContent = "💾 حفظ التعديل";
+    document.getElementById("evCancel").style.display = "";
+    evBranchChanged();
+    document.getElementById("evFormCard").scrollIntoView({ behavior: "smooth" });
+  }
+  function evDelete(id) {
+    const en = EVC().entries.find(x => x.id === id);
+    if (!en || !confirm(`حذف «${en.name}» من الكشف؟`)) return;
+    evSave(ev => { ev.entries = ev.entries.filter(x => x.id !== id); });
+  }
+  function evPayFull(id) {
+    const ev = EVC(), en = ev.entries.find(x => x.id === id);
+    if (!en) return;
+    const c = evCalc(en, ev);
+    if (!confirm(`تسجيل سداد ${fmtNum(c.diff)} ر.س من «${en.name}»؟ يصبح المدفوع ${fmtNum(c.due)}.`)) return;
+    evSave(ev2 => { const x = ev2.entries.find(y => y.id === id); if (x) x.paid = c.due; });
+  }
+  function evSaveFees() {
+    const v = id => Math.max(0, Number(document.getElementById(id).value || 0));
+    evSave(ev => { ev.fees = { contrib: v("evFeeContrib"), non: v("evFeeNon"), maid: v("evFeeMaid") }; });
+    const m = document.getElementById("evFeeMsg"); m.textContent = "✅ حُفظت الرسوم"; setTimeout(() => { m.textContent = ""; }, 2500);
+  }
+
+  // ---- print / export ----
+  function evPrint() {
+    const ev = EVC(), kind = document.getElementById("evPrintKind").value, br = document.getElementById("evPrintBranch").value;
+    let list = ev.entries.map(en => Object.assign({ en }, evCalc(en, ev))).filter(x => !br || evFamily(x.en) === br);
+    if (kind === "due") list = list.filter(x => x.diff > 0);
+    list.sort((a, b) => evFamily(a.en).localeCompare(evFamily(b.en), "ar") || a.en.name.localeCompare(b.en.name, "ar"));
+    let prefs = {}; try { prefs = JSON.parse(localStorage.getItem("shuaibi_official_report_prefs") || "{}"); } catch (e) {}
+    const entity = prefs.ofEntity || "المجلس الإداري لأسرة الشعيبي بالأحساء";
+    const KT = { full: "الكشف المالي للمشاركات", branches: "كشف المشاركات حسب الفروع", due: "كشف المبالغ المتبقية", attend: "كشف الحضور والتسليم", summary: "الملخص المالي" };
+    const n = v => fmtNum(v);
+    const sumOf = (arr, k) => r2(arr.reduce((s, x) => s + x[k], 0));
+    const finTable = arr => `<table><thead><tr><th>م</th><th>اسم الطفلة</th><th>الفرع / الأسرة</th><th>اسم الوالدة</th><th>الاستحقاق</th><th>العاملة</th><th>المستحق</th><th>المدفوع</th><th>الفرق</th></tr></thead><tbody>
+      ${arr.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${hEsc(x.en.name)}</td><td>${hEsc(evFamily(x.en))}</td><td>${hEsc(x.en.mother || "—")}</td><td class="c">${x.en.cat === "contrib" ? "بنت مساهم" : "بنت غير مساهم"} (${n(x.fee)})</td><td class="c">${x.en.maid ? "نعم (" + n(x.maidFee) + ")" : "لا"}</td><td class="n">${n(x.due)}</td><td class="n">${n(x.paid)}</td><td class="n">${x.diff ? n(x.diff) : "✓"}</td></tr>`).join("") || '<tr><td colspan="9" class="c">لا توجد أسماء</td></tr>'}
+      <tr class="tot"><td colspan="6">الإجمالي (${arr.length})</td><td class="n">${n(sumOf(arr, "due"))}</td><td class="n">${n(sumOf(arr, "paid"))}</td><td class="n">${n(sumOf(arr, "diff"))}</td></tr></tbody></table>`;
+    const attendTable = arr => `<table><thead><tr><th style="width:36px;">م</th><th>اسم الطفلة</th><th>الفرع / الأسرة</th><th>العاملة</th><th style="width:70px;">حضور ✓</th><th style="width:150px;">ملاحظات / توقيع</th></tr></thead><tbody>
+      ${arr.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${hEsc(x.en.name)}</td><td>${hEsc(evFamily(x.en))}</td><td class="c">${x.en.maid ? "نعم" : "—"}</td><td></td><td></td></tr>`).join("")}</tbody></table>`;
+    let body = "";
+    const summary = arr => {
+      const g = {};
+      arr.forEach(x => { const k = evFamily(x.en); g[k] = g[k] || []; g[k].push(x); });
+      return `<table><thead><tr><th>الفرع / الأسرة</th><th>العدد</th><th>بنات المساهمين</th><th>غير المساهمين</th><th>العاملات</th><th>المستحق</th><th>المدفوع</th><th>المتبقي</th></tr></thead><tbody>
+        ${Object.keys(g).map(k => `<tr><td>${hEsc(k)}</td><td class="c">${g[k].length}</td><td class="c">${g[k].filter(x => x.en.cat === "contrib").length}</td><td class="c">${g[k].filter(x => x.en.cat !== "contrib").length}</td><td class="c">${g[k].filter(x => x.en.maid).length}</td><td class="n">${n(sumOf(g[k], "due"))}</td><td class="n">${n(sumOf(g[k], "paid"))}</td><td class="n">${n(sumOf(g[k], "diff"))}</td></tr>`).join("")}
+        <tr class="tot"><td>الإجمالي</td><td class="c">${arr.length}</td><td class="c">${arr.filter(x => x.en.cat === "contrib").length}</td><td class="c">${arr.filter(x => x.en.cat !== "contrib").length}</td><td class="c">${arr.filter(x => x.en.maid).length}</td><td class="n">${n(sumOf(arr, "due"))}</td><td class="n">${n(sumOf(arr, "paid"))}</td><td class="n">${n(sumOf(arr, "diff"))}</td></tr></tbody></table>`;
+    };
+    if (kind === "branches" || (kind === "attend" && !br)) {
+      const g = {}; list.forEach(x => { const k = evFamily(x.en); (g[k] = g[k] || []).push(x); });
+      body = Object.keys(g).map((k, i) => `<div class="fr-section${i ? " fr-break" : ""}"><div class="fr-head"><h3>${hEsc(k)}</h3><span class="fr-no">${g[k].length} طفلة</span></div>${kind === "attend" ? attendTable(g[k]) : finTable(g[k])}</div>`).join("");
+    } else if (kind === "attend") body = `<div class="fr-section">${attendTable(list)}</div>`;
+    else if (kind === "summary") body = `<div class="fr-section"><div class="fr-head"><h3>الملخص المالي حسب الفروع</h3></div>${summary(list)}</div>
+      <div class="fr-section"><table><tbody><tr><td>رسوم بنت المساهم</td><td class="n">${n(ev.fees.contrib)}</td></tr><tr><td>رسوم بنت غير المساهم</td><td class="n">${n(ev.fees.non)}</td></tr><tr><td>رسوم العاملة</td><td class="n">${n(ev.fees.maid)}</td></tr></tbody></table></div>`;
+    else body = `<div class="fr-section">${finTable(list)}</div>`;
+    const html = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>${hEsc(ev.title)} ${ev.year}هـ — ${KT[kind]}</title><style>${OFFICIAL_CSS}
+      body{margin:18px;background:#fff}.fr .fr-cover{padding:16px 18px;min-height:0;margin-bottom:14px}.fr .fr-cover img{width:70px}.fr .fr-cover h1{font-size:1.15rem;margin:6px 0 2px}.fr .fr-cover h2{font-size:1.05rem;margin:2px 0 8px}
+      @page{size:A4 ${kind === "attend" ? "portrait" : "landscape"};margin:10mm}</style></head><body><div class="fr">
+      <div class="fr-cover"><img src="${LOGO_SRC}" alt=""><h1>${hEsc(entity)}</h1><h2>${hEsc(ev.title)} ${ev.year}هـ — ${KT[kind]}</h2>
+      <div class="fr-meta"><div><strong>الفرع:</strong> ${br ? hEsc(br) : "جميع الفروع"} — <strong>عدد الأسماء:</strong> ${list.length}</div>
+      <div><strong>الرسوم:</strong> بنت المساهم ${n(ev.fees.contrib)} — بنت غير المساهم ${n(ev.fees.non)} — العاملة ${n(ev.fees.maid)} ر.س</div><div><strong>تاريخ الطباعة:</strong> ${formatGregorianToday()}</div></div></div>
+      ${body}<div class="fr-foot">${hEsc(entity)} — ${hEsc(ev.title)} ${ev.year}هـ</div></div><script>window.onload=()=>setTimeout(()=>window.print(),400)<\/script></body></html>`;
+    const w = window.open("", "_blank");
+    if (!w) { alert("اسمح بالنوافذ المنبثقة للطباعة."); return; }
+    w.document.write(html); w.document.close();
+  }
+  function evExcel() {
+    const ev = EVC();
+    loadSheetJS(() => {
+      const rows = [["م", "اسم الطفلة", "الفرع / الأسرة", "من خارج الأسرة", "اسم الوالدة", "الاستحقاق", "رسوم الطفلة", "مع عاملة", "رسوم العاملة", "المستحق", "المدفوع", "الفرق", "ملاحظة"]];
+      ev.entries.forEach((en, i) => { const c = evCalc(en, ev); rows.push([i + 1, en.name, evFamily(en), en.branch === EV_OTHER ? "نعم" : "", en.mother || "", en.cat === "contrib" ? "بنت مساهم" : "بنت غير مساهم", c.fee, en.maid ? "نعم" : "لا", c.maidFee, c.due, c.paid, c.diff, en.note || ""]); });
+      const ws = XLSX.utils.aoa_to_sheet(rows); ws["!cols"] = [{ wch: 5 }, { wch: 34 }, { wch: 18 }, { wch: 10 }, { wch: 24 }, { wch: 14 }, { wch: 10 }, { wch: 9 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 20 }];
+      ws["!views"] = [{ RTL: true }];
+      const wb = XLSX.utils.book_new(); wb.Workbook = { Views: [{ RTL: true }] }; XLSX.utils.book_append_sheet(wb, ws, "المشاركات");
+      XLSX.writeFile(wb, `${ev.title}_${ev.year}.xlsx`);
+    });
   }
 
   // ===== Backups (stored by the server in the owner's Google Drive) =====
